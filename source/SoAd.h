@@ -22,8 +22,18 @@
 
 typedef struct {
     uint8 dummy;
+} SoAd_SocketConnection;
+
+typedef struct {
+    uint32 headerid;
+
+} SoAd_SocketRoute;
+
+typedef struct {
+    uint8 dummy;
 } SoAd_ConfigType;
 
 void SoAd_Init(const SoAd_ConfigType* config);
+void SoAd_MainFunction(void);
 
 #endif
