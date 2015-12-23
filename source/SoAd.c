@@ -40,9 +40,31 @@
 
 const SoAd_ConfigType * SoAd_Config = NULL_PTR;
 
+typedef struct {
+    TcpIp_SocketIdType        socket_id;
+    SoAd_SoConStateType       state;
+} SoAd_SoConStatusType;
+
+SoAd_SoConStatusType SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
+
+
+static void SoAd_Init_SoCon(SoAd_SoConIdType id)
+{
+    SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id];
+    status->socket_id = TCPIP_SOCKETID_INVALID;
+    status->state     = SOAD_SOCON_OFFLINE;
+}
+
 void SoAd_Init(const SoAd_ConfigType* config)
 {
+    SoAd_SoConIdType id;
     SoAd_Config = config;
+
+    memset(SoAd_SoConStatus, 0, sizeof(SoAd_SoConStatus));
+
+    for (id = 0u; id < SOAD_CFG_CONNECTION_COUNT; ++id) {
+        SoAd_Init_SoCon(id);
+    }
 }
 
 void SoAd_RxIndication(
@@ -93,6 +115,28 @@ BufReq_ReturnType SoAd_CopyTxData(
 }
 
 
+void SoAd_SoCon_MainFunction(SoAd_SoConIdType id)
+{
+    SoAd_SoConStatusType* status = &SoAd_SoConStatus[id];
+
+    switch(status->state) {
+        case SOAD_SOCON_OFFLINE:
+            break;
+        case SOAD_SOCON_RECONNECT:
+            break;
+        case SOAD_SOCON_ONLINE:
+            break;
+        default:
+            break;
+    }
+
+
+}
+
 void SoAd_MainFunction(void)
 {
+    SoAd_SoConIdType id;
+    for (id = 0u; id < SOAD_CFG_CONNECTION_COUNT; ++id) {
+        SoAd_SoCon_MainFunction(id);
+    }
 }
