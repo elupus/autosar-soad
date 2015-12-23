@@ -68,7 +68,7 @@ void SoAd_Init(const SoAd_ConfigType* config)
 }
 
 void SoAd_RxIndication(
-        TcpIp_SocketIdType          id,
+        TcpIp_SocketIdType          socket_id,
         const TcpIp_SockAddrType*   remote,
         uint8*                      buf,
         uint16                      len
@@ -77,22 +77,22 @@ void SoAd_RxIndication(
 }
 
 void SoAd_TcpIpEvent(
-        TcpIp_SocketIdType          id,
+        TcpIp_SocketIdType          socket_id,
         TcpIp_EventType             event
     )
 {
 }
 
 void SoAd_TxConfirmation(
-        TcpIp_SocketIdType          id,
+        TcpIp_SocketIdType          socket_id,
         uint16                      len
     )
 {
 }
 
 Std_ReturnType SoAd_TcpAccepted(
-        TcpIp_SocketIdType          id,
-        TcpIp_SocketIdType          id_connected,
+        TcpIp_SocketIdType          socket_id,
+        TcpIp_SocketIdType          socket_id_connected,
         const TcpIp_SockAddrType*   remote
     )
 {
@@ -100,15 +100,15 @@ Std_ReturnType SoAd_TcpAccepted(
 }
 
 void SoAd_TcpConnected(
-        TcpIp_SocketIdType id
+        TcpIp_SocketIdType          socket_id
     )
 {
 }
 
 BufReq_ReturnType SoAd_CopyTxData(
-        TcpIp_SocketIdType SocketId,
-        uint8* BufPtr,
-        uint16 BufLength
+        TcpIp_SocketIdType          socket_id,
+        uint8*                      buf,
+        uint16                      len
     )
 {
     return BUFREQ_E_NOT_OK;
