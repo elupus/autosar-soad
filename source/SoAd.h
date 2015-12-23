@@ -96,10 +96,14 @@ typedef enum {
 } SoAd_SoConStateType;
 
 typedef uint8 SoAd_SoConIdType;
+typedef uint8 SoAd_SoGrpIdType;
 
 typedef struct {
     uint16                            localport;          /**< SoAdSocketLocalPort */
+    TcpIp_DomainType                  domain;             /**< domain of local interface */
     TcpIp_ProtocolType                protocol;
+    boolean                           automatic;          /**< SoAdSocketAutomaticSoConSetup */
+    boolean                           initiate;           /**< SoAdSocketTcpInitiate */
 } SoAd_SoGrpConfigType;
 
 typedef struct {

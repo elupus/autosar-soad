@@ -46,6 +46,8 @@ typedef struct {
     TcpIp_SocketIdType        socket_id;
     TcpIp_SockAddrStorageType remote;
     SoAd_SoConStateType       state;
+    boolean                   request_open;
+    boolean                   request_close;
 } SoAd_SoConStatusType;
 
 typedef struct {
@@ -271,8 +273,106 @@ void SoAd_SoCon_State_Reconnect(SoAd_SoConIdType id)
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
 
 }
+
+/**
+ * Check if we perform an open on the socket
+ * @req  SWS_SoAd_00589
+ * @todo TCPIP_IPADDR_STATE_ASSIGNED
+ * @todo Only first socket of a tcp group should be opened
+ */
+static Std_ReturnType SoAd_SoCon_CheckOpen(SoAd_SoConIdType id)
+{
+    const SoAd_SoConConfigType* config       = SoAd_Config->connections[id];
+    const SoAd_SoGrpConfigType* config_group = SoAd_Config->groups[config->group];
+    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
+    SoAd_SoGrpStatusType*       status_group = &SoAd_SoGrpStatus[config->group];
+    Std_ReturnType              res = E_NOT_OK;
+
+    if (status->socket_id == TCPIP_SOCKETID_INVALID) {
+        if ((config_group->automatic != FALSE) || (status->request_open != FALSE)) {
+            if (status->remote.base.domain != (TcpIp_DomainType)0u) {
+                res = E_OK;
+            }
+        }
+    }
+
+    return res;
+}
+
+/**
+ * @brief open a socket
+ * @req   SWS_SoAd_00590
+ * @req   SWS_SoAd_00638
+ * @todo  SoAdSocketLocalAddressRef
+ * @todo  SWS_SoAd_00689 Socket parameters
+ * @todo  MaxChannels of socket group
+ */
+static Std_ReturnType SoAd_SoCon_PerformOpen(SoAd_SoConIdType id)
+{
+    const SoAd_SoConConfigType* config       = SoAd_Config->connections[id];
+    const SoAd_SoGrpConfigType* config_group = SoAd_Config->groups[config->group];
+    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
+    SoAd_SoGrpStatusType*       status_group = &SoAd_SoGrpStatus[config->group];
+    Std_ReturnType              res;
+
+    status->request_open = FALSE;
+
+    if (status_group->socket_id == TCPIP_SOCKETID_INVALID) {
+        res = TcpIp_SoAdGetSocket(config_group->domain
+                                , config_group->protocol
+                                , &status->socket_id);
+        if (res == E_OK) {
+            uint16 localport = config_group->localport;
+            res = TcpIp_Bind(status->socket_id
+                           , TCPIP_LOCALADDRID_ANY
+                           , &localport);
+
+            if (res == E_OK) {
+                if (config_group->protocol == TCPIP_IPPROTO_TCP) {
+                    if (config_group->initiate) {
+                        res = TcpIp_TcpConnect(status->socket_id
+                                             , &status->remote.base);
+                    } else {
+                        res = TcpIp_TcpListen(status->socket_id
+                                             , SOAD_CFG_CONNECTION_COUNT);
+                    }
+                }
+
+                if (res == E_OK) {
+                    status_group->socket_id = status->socket_id;
+                }
+            }
+        }
+    } else {
+        res = E_OK;
+        /* TODO - mark active */
+    }
+
+    return res;
+}
+
 void SoAd_SoCon_State_Offline(SoAd_SoConIdType id)
 {
+    const SoAd_SoConConfigType* config       = SoAd_Config->connections[id];
+    const SoAd_SoGrpConfigType* config_group = SoAd_Config->groups[config->group];
+    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
+    Std_ReturnType res;
+
+    res = SoAd_SoCon_CheckOpen(id);
+    if (res == E_OK) {
+        res = SoAd_SoCon_PerformOpen(id);
+        if (res == E_OK) {
+            if (config_group->protocol == TCPIP_IPPROTO_TCP) {
+                status->state = SOAD_SOCON_RECONNECT;
+            } else if (config_group->protocol == TCPIP_IPPROTO_UDP) {
+                if (SoAd_SockAddrWildcard(&status->remote.base) != FALSE) {
+                    status->state = SOAD_SOCON_RECONNECT;
+                } else {
+                    status->state = SOAD_SOCON_ONLINE;
+                }
+            }
+        }
+    }
 }
 
 void SoAd_SoCon_MainFunction(SoAd_SoConIdType id)

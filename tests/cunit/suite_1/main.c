@@ -20,17 +20,59 @@
 #include "CUnit/Basic.h"
 #include "CUnit/Automated.h"
 
+struct suite_socket_state {
+    boolean retrieve;
+    boolean bound;
+    boolean listen;
+    boolean connect;
+};
+
+
 struct suite_state {
-    uint8 dummy;
+    TcpIp_SocketIdType socket_id;
+    uint16             port_index;
+
+    struct suite_socket_state sockets[100];
 };
 
 struct suite_state suite_state;
 
-const SoAd_SoGrpConfigType           socket_group_1;
+const TcpIp_SockAddrInetType socket_remote_any_v4 = {
+    .domain  = TCPIP_AF_INET,
+    .addr[0] = TCPIP_IPADDR_ANY,
+    .port    = TCPIP_PORT_ANY,
+};
+
+const SoAd_SoGrpConfigType           socket_group_1 = {
+    .localport = 8000,
+    .protocol  = TCPIP_IPPROTO_TCP,
+    .automatic = TRUE,
+    .initiate  = FALSE,
+};
+
+const SoAd_SoGrpConfigType           socket_group_2 = {
+    .localport = 8001,
+    .protocol  = TCPIP_IPPROTO_UDP,
+    .automatic = TRUE,
+    .initiate  = FALSE,
+};
+
 const SoAd_SocketRouteType           socket_route_1;
 
-const SoAd_SoConConfigType           socket_conn_1 = {
+const SoAd_SoConConfigType           socket_group_1_conn_1 = {
+    .group  = 0u,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+};
+
+const SoAd_SoConConfigType           socket_group_1_conn_2 = {
     .group = 0u,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+};
+
+
+const SoAd_SoConConfigType           socket_group_2_conn_1 = {
+    .group = 1u,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
 };
 
 const SoAd_PduRouteType              pdu_route_1;
@@ -38,10 +80,13 @@ const SoAd_PduRouteType              pdu_route_1;
 const SoAd_ConfigType config = {
     .groups = {
         &socket_group_1,
+        &socket_group_2,
     },
 
     .connections = {
-        &socket_conn_1,
+        &socket_group_1_conn_1,
+        &socket_group_1_conn_2,
+        &socket_group_2_conn_1,
     },
 
     .socket_routes     = {
@@ -60,6 +105,9 @@ Std_ReturnType Det_ReportError(
         uint8 ErrorId
     )
 {
+    CU_ASSERT_EQUAL(ModuleId  , SOAD_MODULEID);
+    CU_ASSERT_EQUAL(InstanceId, 0u);
+    CU_ASSERT_TRUE(FALSE);
     return E_OK;
 }
 
@@ -69,6 +117,8 @@ Std_ReturnType TcpIp_SoAdGetSocket(
         TcpIp_SocketIdType*         id
     )
 {
+    *id = ++suite_state.socket_id;
+    suite_state.sockets[*id].retrieve = TRUE;
     return E_OK;
 }
 
@@ -100,6 +150,10 @@ Std_ReturnType TcpIp_Bind(
         uint16* port
     )
 {
+    if (port == TCPIP_PORT_ANY) {
+        *port = ++suite_state.port_index;
+    }
+    suite_state.sockets[id].bound = TRUE;
     return E_OK;
 }
 
@@ -108,6 +162,7 @@ Std_ReturnType TcpIp_TcpListen(
         uint16 channels
     )
 {
+    suite_state.sockets[id].listen = TRUE;
     return E_OK;
 }
 
@@ -116,11 +171,16 @@ Std_ReturnType TcpIp_TcpConnect(
         const TcpIp_SockAddrType*   remote
     )
 {
+    suite_state.sockets[id].connect = TRUE;
     return E_OK;
 }
 
 int suite_init(void)
 {
+    suite_state.socket_id  = 1u;
+    suite_state.port_index = 1024u;
+    memset(suite_state.sockets, 0, sizeof(suite_state.sockets));
+
     SoAd_Init(&config);
     return 0;
 }
@@ -192,6 +252,47 @@ void main_add_generic_suite(CU_pSuite suite)
     CU_add_test(suite, "wildcard_v6"             , suite_test_wildcard_v6);
 }
 
+void main_test_mainfunction_open()
+{
+    SoAd_SoConIdType id;
+    struct suite_socket_state* socket_state;
+
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[0].state, SOAD_SOCON_OFFLINE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[1].state, SOAD_SOCON_OFFLINE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[2].state, SOAD_SOCON_OFFLINE);
+    SoAd_MainFunction();
+
+    /* TCP listen socket should be bound and listening */
+    id = 0u;
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[id].socket_id, TCPIP_SOCKETID_INVALID);
+    socket_state = &suite_state.sockets[SoAd_SoConStatus[id].socket_id];
+    CU_ASSERT_EQUAL(socket_state->retrieve    , TRUE);
+    CU_ASSERT_EQUAL(socket_state->bound       , TRUE);
+    CU_ASSERT_EQUAL(socket_state->listen      , TRUE);
+    CU_ASSERT_EQUAL(socket_state->connect     , FALSE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[id].state, SOAD_SOCON_RECONNECT);
+
+    /* TCP extra sockets should be just waiting to connect */
+    id = 1u;
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[id].socket_id, TCPIP_SOCKETID_INVALID);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[id].state, SOAD_SOCON_RECONNECT);
+
+    /* UDP socket should be bound, but not listening or connected */
+    id = 2u;
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[id].socket_id, TCPIP_SOCKETID_INVALID);
+    socket_state = &suite_state.sockets[SoAd_SoConStatus[id].socket_id];
+    CU_ASSERT_EQUAL(socket_state->retrieve    , TRUE);
+    CU_ASSERT_EQUAL(socket_state->bound       , TRUE);
+    CU_ASSERT_EQUAL(socket_state->listen      , FALSE);
+    CU_ASSERT_EQUAL(socket_state->connect     , FALSE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[id].state, SOAD_SOCON_RECONNECT);
+}
+
+void main_add_mainfunction_suite(CU_pSuite suite)
+{
+    CU_add_test(suite, "open"             , main_test_mainfunction_open);
+}
+
 int main(void)
 {
     CU_pSuite suite = NULL;
@@ -203,6 +304,9 @@ int main(void)
     /* add a suite to the registry */
     suite = CU_add_suite("Suite_Generic", suite_init, suite_clean);
     main_add_generic_suite(suite);
+
+    suite = CU_add_suite("Suite_MainFunction", suite_init, suite_clean);
+    main_add_mainfunction_suite(suite);
 
 
     /* Run all tests using the CUnit Basic interface */
