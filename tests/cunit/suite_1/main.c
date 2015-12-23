@@ -26,7 +26,32 @@ struct suite_state {
 
 struct suite_state suite_state;
 
-SoAd_ConfigType config;
+const SoAd_SoConGroupType            socket_group_1;
+const SoAd_SocketRouteType           socket_route_1;
+
+const SoAd_SoConConfigType           socket_conn_1 = {
+    .group = &socket_group_1,
+};
+
+const SoAd_PduRouteType              pdu_route_1;
+
+const SoAd_ConfigType config = {
+    .groups = {
+        &socket_group_1,
+    },
+
+    .connections = {
+        &socket_conn_1,
+    },
+
+    .socket_routes     = {
+        &socket_route_1,
+    },
+
+    .pdu_routes        = {
+        &pdu_route_1,
+    },
+};
 
 Std_ReturnType Det_ReportError(
         uint16 ModuleId,
@@ -36,6 +61,26 @@ Std_ReturnType Det_ReportError(
     )
 {
     return E_OK;
+}
+
+Std_ReturnType TcpIp_UdpTransmit(
+        TcpIp_SocketIdType          id,
+        const uint8*                data,
+        const TcpIp_SockAddrType*   remote,
+        uint16                      len
+    )
+{
+    return E_NOT_OK;
+}
+
+Std_ReturnType TcpIp_TcpTransmit(
+        TcpIp_SocketIdType  id,
+        const uint8*        data,
+        uint32              aailable,
+        boolean             force
+    )
+{
+    return E_NOT_OK;
 }
 
 int suite_init(void)
