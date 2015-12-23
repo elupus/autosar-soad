@@ -73,6 +73,19 @@
  * @}
  */
 
+
+
+/**
+ * @brief Service identifier
+ * @{
+ */
+#define SOAD_API_INIT                         0x01u
+#define SOAD_API_IFTRANSMIT                   0x03u
+
+/**
+ * @}
+ */
+
 typedef struct {
     uint8 dummy;
 } SoAd_SocketConnection;
