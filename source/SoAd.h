@@ -18,7 +18,10 @@
 #ifndef SOAD_H_
 #define SOAD_H_
 
+#include "Std_Types.h"
+#include "ComStack_Types.h"
 #include "TcpIp.h"
+#include "SoAd_Cfg.h"
 
 #define SOAD_MODULEID   56u
 #define SOAD_INSTANCEID 0u
@@ -86,20 +89,56 @@
  * @}
  */
 
-typedef struct {
-    uint8 dummy;
-} SoAd_SocketConnection;
+typedef enum {
+    SOAD_SOCON_OFFLINE,
+    SOAD_SOCON_RECONNECT,
+    SOAD_SOCON_ONLINE,
+} SoAd_SoConStateType;
+
+typedef uint8 SoAd_SoConIdType;
 
 typedef struct {
-    uint32 headerid;
-
-} SoAd_SocketRoute;
+    uint16                            localport;          /**< SoAdSocketLocalPort */
+    TcpIp_ProtocolType                protocol;
+} SoAd_SoConGroupType;
 
 typedef struct {
-    uint8 dummy;
+    PduIdType                         pdu;                /**< SoAdRxPduRef */
+} SoAd_SocketRouteDestType;
+
+typedef struct {
+    uint32                            header_id;           /**< SoAdRxPduHeaderId   */
+    SoAd_SocketRouteDestType          destination;        /**< SoAdSocketRouteDest */
+} SoAd_SocketRouteType;
+
+typedef struct {
+    const SoAd_SoConGroupType*   group;
+    const TcpIp_SockAddrType*    remote;
+} SoAd_SoConConfigType;
+
+typedef struct {
+    uint32                                  header_id;
+    SoAd_SoConIdType                        connection;
+} SoAd_PduRouteDestType;
+
+typedef struct {
+    SoAd_PduRouteDestType                   destination;
+} SoAd_PduRouteType;
+
+typedef struct {
+    const SoAd_SoConGroupType*   groups       [SOAD_CFG_CONNECTIONGROUP_COUNT];
+    const SoAd_SoConConfigType*  connections  [SOAD_CFG_CONNECTION_COUNT];
+    const SoAd_PduRouteType*     pdu_routes   [SOAD_CFG_PDUROUTE_COUNT];
+    const SoAd_SocketRouteType*  socket_routes[SOAD_CFG_SOCKETROUTE_COUNT];
 } SoAd_ConfigType;
 
 void SoAd_Init(const SoAd_ConfigType* config);
 void SoAd_MainFunction(void);
+
+Std_ReturnType SoAd_IfTransmit(
+        PduIdType           pdu_id,
+        const PduInfoType*  pdu_info
+    );
+
 
 #endif
