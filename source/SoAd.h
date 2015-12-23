@@ -23,6 +23,56 @@
 #define SOAD_MODULEID   56u
 #define SOAD_INSTANCEID 0u
 
+/**
+ * @brief Development Errors
+ * @req SWS_SoAd_00101
+ * @{
+ */
+
+/**
+ * @brief API service called before initializing the module
+ */
+#define SOAD_E_NOTINIT          0x01u
+
+/**
+ * @brief API service called with NULL pointer
+ */
+#define SOAD_E_PARAM_POINTER    0x02u
+
+/**
+ * @brief Invalid argument
+ */
+#define SOAD_E_INV_ARG          0x03u
+
+/**
+ * @brief No buffer space available
+ */
+#define SOAD_E_NOBUFS           0x04u
+
+/**
+ * @brief Unknown PduHeader ID
+ */
+#define SOAD_E_INV_PDUHEADER_ID 0x05u
+
+/**
+ * @brief Invalid PDU ID
+ */
+#define SOAD_E_INV_PDUID        0x06u
+
+/**
+ * @brief Invalid socket address
+ */
+#define SOAD_E_INV_SOCKETID     0x07u
+
+/**
+ * @brief Invalid configuration set selection
+ */
+#define SOAD_E_INIT_FAILED      0x08u
+
+/**
+ * @}
+ */
+
 typedef struct {
     uint8 dummy;
 } SoAd_SocketConnection;
