@@ -20,6 +20,9 @@
 
 #include "TcpIp.h"
 
+#define SOAD_MODULEID   56u
+#define SOAD_INSTANCEID 0u
+
 typedef struct {
     uint8 dummy;
 } SoAd_SocketConnection;
