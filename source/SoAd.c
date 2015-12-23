@@ -134,6 +134,67 @@ BufReq_ReturnType SoAd_CopyTxData(
     return BUFREQ_E_NOT_OK;
 }
 
+Std_ReturnType SoAd_IfTransmit(
+        PduIdType                   pdu_id,
+        const PduInfoType*          pdu_info
+    )
+{
+    const SoAd_PduRouteType*    route;
+    const SoAd_SoConStatusType* status;
+    const SoAd_SoConConfigType* config;
+    const SoAd_SoConGroupType*  group;
+    Std_ReturnType              res;
+
+
+    /**
+     * @req SWS_SoAd_00213
+     */
+    SOAD_DET_CHECK_RET(SoAd_Config != NULL_PTR
+                     , SOAD_API_IFTRANSMIT
+                     , SOAD_E_NOTINIT);
+
+    /**
+     * @req SWS_SoAd_00214
+     */
+    SOAD_DET_CHECK_RET(pdu_id < SOAD_CFG_PDUROUTE_COUNT
+                     , SOAD_API_IFTRANSMIT
+                     , SOAD_E_INV_PDUID);
+
+    /**
+     * @req SWS_SoAd_00653-TODO
+     */
+
+    route  = SoAd_Config->pdu_routes[pdu_id];
+    status = &SoAd_SoConStatus[route->destination.connection];
+    config = SoAd_Config->connections[route->destination.connection];
+    group  = config->group;
+
+    if (status->state == SOAD_SOCON_ONLINE) {
+        res = E_OK;
+    } else {
+        res = E_NOT_OK;
+    }
+
+    switch(group->protocol) {
+        case TCPIP_IPPROTO_TCP:
+            res = TcpIp_UdpTransmit(status->socket_id
+                                   , pdu_info->SduDataPtr
+                                   , &status->remote.base
+                                   , pdu_info->SduLength);
+            break;
+        case TCPIP_IPPROTO_UDP:
+            res = TcpIp_TcpTransmit(status->socket_id
+                                  , pdu_info->SduDataPtr
+                                  , pdu_info->SduLength
+                                  , TRUE);
+            break;
+        default:
+            res = E_NOT_OK;
+            break;
+    }
+
+    return res;
+}
 
 void SoAd_SoCon_MainFunction(SoAd_SoConIdType id)
 {
