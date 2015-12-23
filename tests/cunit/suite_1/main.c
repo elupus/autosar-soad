@@ -26,11 +26,11 @@ struct suite_state {
 
 struct suite_state suite_state;
 
-const SoAd_SoConGroupType            socket_group_1;
+const SoAd_SoGrpConfigType           socket_group_1;
 const SoAd_SocketRouteType           socket_route_1;
 
 const SoAd_SoConConfigType           socket_conn_1 = {
-    .group = &socket_group_1,
+    .group = 0u,
 };
 
 const SoAd_PduRouteType              pdu_route_1;

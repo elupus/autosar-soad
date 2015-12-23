@@ -100,7 +100,7 @@ typedef uint8 SoAd_SoConIdType;
 typedef struct {
     uint16                            localport;          /**< SoAdSocketLocalPort */
     TcpIp_ProtocolType                protocol;
-} SoAd_SoConGroupType;
+} SoAd_SoGrpConfigType;
 
 typedef struct {
     PduIdType                         pdu;                /**< SoAdRxPduRef */
@@ -112,7 +112,7 @@ typedef struct {
 } SoAd_SocketRouteType;
 
 typedef struct {
-    const SoAd_SoConGroupType*   group;
+    SoAd_SoGrpIdType             group;
     const TcpIp_SockAddrType*    remote;
 } SoAd_SoConConfigType;
 
@@ -126,7 +126,7 @@ typedef struct {
 } SoAd_PduRouteType;
 
 typedef struct {
-    const SoAd_SoConGroupType*   groups       [SOAD_CFG_CONNECTIONGROUP_COUNT];
+    const SoAd_SoGrpConfigType*  groups       [SOAD_CFG_CONNECTIONGROUP_COUNT];
     const SoAd_SoConConfigType*  connections  [SOAD_CFG_CONNECTION_COUNT];
     const SoAd_PduRouteType*     pdu_routes   [SOAD_CFG_PDUROUTE_COUNT];
     const SoAd_SocketRouteType*  socket_routes[SOAD_CFG_SOCKETROUTE_COUNT];

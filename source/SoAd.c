@@ -182,7 +182,7 @@ Std_ReturnType SoAd_IfTransmit(
     const SoAd_PduRouteType*    route;
     const SoAd_SoConStatusType* status;
     const SoAd_SoConConfigType* config;
-    const SoAd_SoConGroupType*  group;
+    const SoAd_SoGrpConfigType* group;
     Std_ReturnType              res;
 
 
@@ -207,7 +207,7 @@ Std_ReturnType SoAd_IfTransmit(
     route  = SoAd_Config->pdu_routes[pdu_id];
     status = &SoAd_SoConStatus[route->destination.connection];
     config = SoAd_Config->connections[route->destination.connection];
-    group  = config->group;
+    group  = SoAd_Config->groups[config->group];
 
     if (status->state == SOAD_SOCON_ONLINE) {
         res = E_OK;
