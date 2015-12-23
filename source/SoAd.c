@@ -19,6 +19,24 @@
 #include "Std_Types.h"
 #include "ComStack_Types.h"
 #include "SoAd.h"
+#if(SOAD_CFG_ENABLE_DEVELOPMENT_ERROR == STD_ON)
+#include "Det.h"
+#define SOAD_DET_ERROR(api, error) Det_ReportError(SOAD_MODULEID, SOAD_INSTANCEID, api, error)
+#define SOAD_DET_CHECK_RET(check, api, error)        \
+    do {                                             \
+        if (!(check)) {                              \
+            (void)Det_ReportError(SOAD_MODULEID      \
+                                , SOAD_INSTANCEID    \
+                                , api                \
+                                , error);            \
+            return E_NOT_OK;                         \
+        }                                            \
+    } while(0)
+
+#else
+#define SOAD_DET_ERROR(api, error)
+#define SOAD_DET_CHECK_RET(check, api, error)
+#endif
 
 const SoAd_ConfigType * SoAd_Config = NULL_PTR;
 
