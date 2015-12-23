@@ -130,13 +130,66 @@ int suite_clean(void)
     return 0;
 }
 
-void suite_test_1()
+void suite_test_wildcard_v4()
 {
+    TcpIp_SockAddrInetType inet;
+    inet.domain  = TCPIP_AF_INET;
+
+    inet.addr[0] = TCPIP_IPADDR_ANY;
+    inet.port    = TCPIP_PORT_ANY;
+    CU_ASSERT_TRUE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
+
+    inet.addr[0] = 1u;
+    inet.port    = TCPIP_PORT_ANY;
+    CU_ASSERT_TRUE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
+
+    inet.addr[0] = TCPIP_IPADDR_ANY;
+    inet.port    = 1u;
+    CU_ASSERT_TRUE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
+
+    inet.addr[0] = 1u;
+    inet.port    = 1u;
+    CU_ASSERT_FALSE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
+}
+
+void suite_test_wildcard_v6()
+{
+    TcpIp_SockAddrInet6Type inet;
+    inet.domain  = TCPIP_AF_INET6;
+
+    inet.addr[0] = TCPIP_IPADDR_ANY;
+    inet.addr[1] = TCPIP_IPADDR_ANY;
+    inet.addr[2] = TCPIP_IPADDR_ANY;
+    inet.addr[3] = TCPIP_IPADDR_ANY;
+    inet.port    = TCPIP_PORT_ANY;
+    CU_ASSERT_TRUE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
+
+    inet.addr[0] = TCPIP_IPADDR_ANY;
+    inet.addr[1] = TCPIP_IPADDR_ANY;
+    inet.addr[2] = TCPIP_IPADDR_ANY;
+    inet.addr[3] = TCPIP_IPADDR_ANY;
+    inet.port    = 1u;
+    CU_ASSERT_TRUE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
+
+    inet.addr[0] = TCPIP_IPADDR_ANY;
+    inet.addr[1] = 1u;
+    inet.addr[2] = TCPIP_IPADDR_ANY;
+    inet.addr[3] = TCPIP_IPADDR_ANY;
+    inet.port    = TCPIP_PORT_ANY;
+    CU_ASSERT_TRUE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
+
+    inet.addr[0] = TCPIP_IPADDR_ANY;
+    inet.addr[1] = 1u;
+    inet.addr[2] = TCPIP_IPADDR_ANY;
+    inet.addr[3] = TCPIP_IPADDR_ANY;
+    inet.port    = 1u;
+    CU_ASSERT_FALSE(SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&inet));
 }
 
 void main_add_generic_suite(CU_pSuite suite)
 {
-    CU_add_test(suite, "test_1"             , suite_test_1);
+    CU_add_test(suite, "wildcard_v4"             , suite_test_wildcard_v4);
+    CU_add_test(suite, "wildcard_v6"             , suite_test_wildcard_v6);
 }
 
 int main(void)
