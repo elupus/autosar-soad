@@ -63,6 +63,16 @@ Std_ReturnType Det_ReportError(
     return E_OK;
 }
 
+Std_ReturnType TcpIp_SoAdGetSocket(
+        TcpIp_DomainType            domain,
+        TcpIp_ProtocolType          protocol,
+        TcpIp_SocketIdType*         id
+    )
+{
+    return E_OK;
+}
+
+
 Std_ReturnType TcpIp_UdpTransmit(
         TcpIp_SocketIdType          id,
         const uint8*                data,
@@ -70,7 +80,7 @@ Std_ReturnType TcpIp_UdpTransmit(
         uint16                      len
     )
 {
-    return E_NOT_OK;
+    return E_OK;
 }
 
 Std_ReturnType TcpIp_TcpTransmit(
@@ -80,7 +90,33 @@ Std_ReturnType TcpIp_TcpTransmit(
         boolean             force
     )
 {
-    return E_NOT_OK;
+    return E_OK;
+}
+
+
+Std_ReturnType TcpIp_Bind(
+        TcpIp_SocketIdType          id,
+        TcpIp_LocalAddrIdType       local,
+        uint16* port
+    )
+{
+    return E_OK;
+}
+
+Std_ReturnType TcpIp_TcpListen(
+        TcpIp_SocketIdType id,
+        uint16 channels
+    )
+{
+    return E_OK;
+}
+
+Std_ReturnType TcpIp_TcpConnect(
+        TcpIp_SocketIdType          id,
+        const TcpIp_SockAddrType*   remote
+    )
+{
+    return E_OK;
 }
 
 int suite_init(void)
