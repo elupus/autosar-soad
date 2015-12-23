@@ -107,7 +107,7 @@ typedef struct {
 } SoAd_SocketRouteDestType;
 
 typedef struct {
-    uint32                            header_id;           /**< SoAdRxPduHeaderId   */
+    uint32                            header_id;          /**< SoAdRxPduHeaderId   */
     SoAd_SocketRouteDestType          destination;        /**< SoAdSocketRouteDest */
 } SoAd_SocketRouteType;
 

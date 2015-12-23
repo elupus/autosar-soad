@@ -112,16 +112,19 @@ static void SoAd_Init_SoCon(SoAd_SoConIdType id)
         SoAd_SockAddrCopy(&status->remote, config->remote);
     }
     status->socket_id = TCPIP_SOCKETID_INVALID;
+
+    /** @req SWS_SoAd_00723 */
     status->state     = SOAD_SOCON_OFFLINE;
 }
 
 void SoAd_Init(const SoAd_ConfigType* config)
 {
     SoAd_SoConIdType id;
-    SoAd_Config = config;
+    SoAd_Config       = config;
 
     memset(SoAd_SoConStatus, 0, sizeof(SoAd_SoConStatus));
 
+    /** @req SWS_SoAd_00723 */
     for (id = 0u; id < SOAD_CFG_CONNECTION_COUNT; ++id) {
         SoAd_Init_SoCon(id);
     }
