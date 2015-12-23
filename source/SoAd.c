@@ -236,22 +236,38 @@ Std_ReturnType SoAd_IfTransmit(
     return res;
 }
 
+void SoAd_SoCon_State_Online(SoAd_SoConIdType id)
+{
+    const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
+
+}
+
+void SoAd_SoCon_State_Reconnect(SoAd_SoConIdType id)
+{
+    const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
+
+}
+void SoAd_SoCon_State_Offline(SoAd_SoConIdType id)
+{
+}
+
 void SoAd_SoCon_MainFunction(SoAd_SoConIdType id)
 {
     SoAd_SoConStatusType* status = &SoAd_SoConStatus[id];
 
     switch(status->state) {
         case SOAD_SOCON_OFFLINE:
+            SoAd_SoCon_State_Offline(id);
             break;
         case SOAD_SOCON_RECONNECT:
+            SoAd_SoCon_State_Reconnect(id);
             break;
         case SOAD_SOCON_ONLINE:
+            SoAd_SoCon_State_Online(id);
             break;
         default:
             break;
     }
-
-
 }
 
 void SoAd_MainFunction(void)
