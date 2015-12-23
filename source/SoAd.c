@@ -19,6 +19,8 @@
 #include "Std_Types.h"
 #include "ComStack_Types.h"
 #include "SoAd.h"
+#include <string.h>
+
 #if(SOAD_CFG_ENABLE_DEVELOPMENT_ERROR == STD_ON)
 #include "Det.h"
 #define SOAD_DET_ERROR(api, error) Det_ReportError(SOAD_MODULEID, SOAD_INSTANCEID, api, error)
