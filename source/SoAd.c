@@ -64,6 +64,46 @@ static void SoAd_SockAddrCopy(TcpIp_SockAddrStorageType* trg, const TcpIp_SockAd
     }
 }
 
+/**
+ * @brief Check if a socket address contains any wildcards
+ * @param[in] addr Socket address to check
+ * @return TRUE if socket address contain any wildcards
+ */
+static boolean SoAd_SockAddrWildcard(const TcpIp_SockAddrType* addr)
+{
+    boolean res = FALSE;
+    switch (addr->domain) {
+        case TCPIP_AF_INET: {
+                const TcpIp_SockAddrInetType* inet = (const TcpIp_SockAddrInetType*)addr;
+                if (inet->addr[0] == TCPIP_IPADDR_ANY) {
+                    res = TRUE;
+                }
+
+                if (inet->port == TCPIP_PORT_ANY) {
+                    res = TRUE;
+                }
+            }
+            break;
+        case TCPIP_AF_INET6: {
+                const TcpIp_SockAddrInet6Type* inet6 = (const TcpIp_SockAddrInet6Type*)addr;
+                if ((inet6->addr[0] == TCPIP_IPADDR_ANY)
+                &&  (inet6->addr[1] == TCPIP_IPADDR_ANY)
+                &&  (inet6->addr[2] == TCPIP_IPADDR_ANY)
+                &&  (inet6->addr[3] == TCPIP_IPADDR_ANY)) {
+                    res = TRUE;
+                }
+
+                if (inet6->port == TCPIP_PORT_ANY) {
+                    res = TRUE;
+                }
+            }
+            break;
+        default:
+            break;
+    }
+    return res;
+}
+
 static void SoAd_Init_SoCon(SoAd_SoConIdType id)
 {
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
