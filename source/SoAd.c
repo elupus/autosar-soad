@@ -48,7 +48,12 @@ typedef struct {
     SoAd_SoConStateType       state;
 } SoAd_SoConStatusType;
 
+typedef struct {
+    TcpIp_SocketIdType        socket_id;
+} SoAd_SoGrpStatusType;
+
 SoAd_SoConStatusType SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
+SoAd_SoGrpStatusType SoAd_SoGrpStatus[SOAD_CFG_CONNECTIONGROUP_COUNT];
 
 static void SoAd_SockAddrCopy(TcpIp_SockAddrStorageType* trg, const TcpIp_SockAddrType* src)
 {
@@ -108,8 +113,12 @@ static void SoAd_Init_SoCon(SoAd_SoConIdType id)
 {
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
     SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id];
+
+    memset(status, 0, sizeof(*status));
     if (config->remote) {
         SoAd_SockAddrCopy(&status->remote, config->remote);
+    } else {
+        status->remote.base.domain = (TcpIp_DomainType)0u;
     }
     status->socket_id = TCPIP_SOCKETID_INVALID;
 
@@ -117,16 +126,28 @@ static void SoAd_Init_SoCon(SoAd_SoConIdType id)
     status->state     = SOAD_SOCON_OFFLINE;
 }
 
+static void SoAd_Init_SoGrp(SoAd_SoGrpIdType id)
+{
+    const SoAd_SoGrpConfigType* config = SoAd_Config->groups[id];
+    SoAd_SoGrpStatusType*       status = &SoAd_SoGrpStatus[id];
+    memset(status, 0, sizeof(*status));
+    status->socket_id = TCPIP_SOCKETID_INVALID;
+}
+
 void SoAd_Init(const SoAd_ConfigType* config)
 {
-    SoAd_SoConIdType id;
+    uint16 id;
+
     SoAd_Config       = config;
 
-    memset(SoAd_SoConStatus, 0, sizeof(SoAd_SoConStatus));
 
     /** @req SWS_SoAd_00723 */
     for (id = 0u; id < SOAD_CFG_CONNECTION_COUNT; ++id) {
         SoAd_Init_SoCon(id);
+    }
+
+    for (id = 0u; id < SOAD_CFG_CONNECTIONGROUP_COUNT; ++id) {
+        SoAd_Init_SoGrp(id);
     }
 }
 
