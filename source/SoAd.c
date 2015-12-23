@@ -44,15 +44,33 @@ const SoAd_ConfigType * SoAd_Config = NULL_PTR;
 
 typedef struct {
     TcpIp_SocketIdType        socket_id;
+    TcpIp_SockAddrStorageType remote;
     SoAd_SoConStateType       state;
 } SoAd_SoConStatusType;
 
 SoAd_SoConStatusType SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
 
+static void SoAd_SockAddrCopy(TcpIp_SockAddrStorageType* trg, const TcpIp_SockAddrType* src)
+{
+    switch (src->domain) {
+        case TCPIP_AF_INET:
+            trg->inet = *(const TcpIp_SockAddrInetType*)src;
+            break;
+        case TCPIP_AF_INET6:
+            trg->inet6 = *(const TcpIp_SockAddrInet6Type*)src;
+            break;
+        default:
+            break;
+    }
+}
 
 static void SoAd_Init_SoCon(SoAd_SoConIdType id)
 {
+    const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
     SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id];
+    if (config->remote) {
+        SoAd_SockAddrCopy(&status->remote, config->remote);
+    }
     status->socket_id = TCPIP_SOCKETID_INVALID;
     status->state     = SOAD_SOCON_OFFLINE;
 }
