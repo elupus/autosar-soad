@@ -242,13 +242,13 @@ Std_ReturnType SoAd_IfTransmit(
     }
 
     switch(group->protocol) {
-        case TCPIP_IPPROTO_TCP:
+        case TCPIP_IPPROTO_UDP:
             res = TcpIp_UdpTransmit(status->socket_id
                                    , pdu_info->SduDataPtr
                                    , &status->remote.base
                                    , pdu_info->SduLength);
             break;
-        case TCPIP_IPPROTO_UDP:
+        case TCPIP_IPPROTO_TCP:
             res = TcpIp_TcpTransmit(status->socket_id
                                   , pdu_info->SduDataPtr
                                   , pdu_info->SduLength
