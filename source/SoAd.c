@@ -57,6 +57,13 @@ typedef struct {
 SoAd_SoConStatusType SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
 SoAd_SoGrpStatusType SoAd_SoGrpStatus[SOAD_CFG_CONNECTIONGROUP_COUNT];
 
+static uint32 SoAd_Ip6Any[] = {
+        TCPIP_IP6ADDR_ANY,
+        TCPIP_IP6ADDR_ANY,
+        TCPIP_IP6ADDR_ANY,
+        TCPIP_IP6ADDR_ANY
+};
+
 static void SoAd_SockAddrCopy(TcpIp_SockAddrStorageType* trg, const TcpIp_SockAddrType* src)
 {
     switch (src->domain) {
@@ -111,6 +118,54 @@ static boolean SoAd_SockAddrWildcard(const TcpIp_SockAddrType* addr)
     return res;
 }
 
+
+/**
+ * @brief Check if a socket address contains any wildcards
+ * @param[in] addr Socket address to check
+ * @return TRUE if socket address contain any wildcards
+ */
+static boolean SoAd_SockAddrWildcardMatch(const TcpIp_SockAddrType* addr_mask, const TcpIp_SockAddrType* addr_check)
+{
+    boolean res = FALSE;
+    if (addr_mask->domain == addr_check->domain) {
+        switch (addr_mask->domain) {
+            case TCPIP_AF_INET: {
+                    const TcpIp_SockAddrInetType* inet_mask  = (const TcpIp_SockAddrInetType*)addr_mask;
+                    const TcpIp_SockAddrInetType* inet_check = (const TcpIp_SockAddrInetType*)addr_check;
+
+                    if ((inet_mask->addr[0] == TCPIP_IPADDR_ANY)
+                    ||  (inet_mask->addr[0] == inet_check->addr[0])) {
+                        if ((inet_mask->port    == TCPIP_PORT_ANY)
+                        ||  (inet_mask->port    == inet_check->port)) {
+                            res = TRUE;
+                        }
+                    }
+                }
+                break;
+            case TCPIP_AF_INET6: {
+                    const TcpIp_SockAddrInet6Type* inet_mask  = (const TcpIp_SockAddrInet6Type*)addr_mask;
+                    const TcpIp_SockAddrInet6Type* inet_check = (const TcpIp_SockAddrInet6Type*)addr_check;
+
+                    if ((memcmp(SoAd_Ip6Any    , inet_check->addr, sizeof(inet_check->addr)) == sizeof(inet_check->addr))
+                    ||  (memcmp(inet_mask->addr, inet_check->addr, sizeof(inet_check->addr)) == sizeof(inet_check->addr))) {
+                        if ((inet_mask->port    == TCPIP_PORT_ANY)
+                        ||  (inet_mask->port    == inet_check->port)) {
+                            res = TRUE;
+                        }
+                    }
+                }
+                break;
+            default:
+                res = E_NOT_OK;
+                break;
+        }
+    } else {
+        res = E_NOT_OK;
+    }
+    return res;
+}
+
+
 static void SoAd_Init_SoCon(SoAd_SoConIdType id)
 {
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
@@ -136,6 +191,61 @@ static void SoAd_Init_SoGrp(SoAd_SoGrpIdType id)
     status->socket_id = TCPIP_SOCKETID_INVALID;
 }
 
+static Std_ReturnType SoAd_SoCon_Lookup(SoAd_SoConIdType *id, TcpIp_SocketIdType socket_id)
+{
+    Std_ReturnType   res = E_NOT_OK;
+    SoAd_SoConIdType index;
+    for (index = 0u; index < SOAD_CFG_CONNECTION_COUNT; ++index) {
+        if (SoAd_SoConStatus[index].socket_id == socket_id) {
+            res = E_OK;
+            *id = index;
+            break;
+        }
+    }
+    return res;
+}
+
+static Std_ReturnType SoAd_SoCon_Lookup_FreeSocket(
+        SoAd_SoConIdType*         id,
+        SoAd_SoGrpIdType          group,
+        const TcpIp_SockAddrType* remote
+    )
+{
+    Std_ReturnType   res = E_NOT_OK;
+    SoAd_SoConIdType index;
+    for (index = 0u; index < SOAD_CFG_CONNECTION_COUNT; ++index) {
+        const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
+        const SoAd_SoConStatusType* status = &SoAd_SoConStatus[id];
+
+        if (status->state == SOAD_SOCON_OFFLINE) {
+            if (config->group == group) {
+                if (config->remote) {
+                    if (SoAd_SockAddrWildcardMatch(config->remote, remote) == TRUE) {
+                        res = E_OK;
+                    }
+                } else {
+                    res = E_OK;
+                }
+                if (res == E_OK) {
+                    *id = index;
+                }
+                break;
+            }
+        }
+    }
+
+    if (res == E_OK) {
+        const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
+        if (config->remote) {
+
+        }
+    }
+
+    return res;
+}
+
+static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType);
+
 void SoAd_Init(const SoAd_ConfigType* config)
 {
     uint16 id;
@@ -160,6 +270,13 @@ void SoAd_RxIndication(
         uint16                      len
     )
 {
+    SoAd_SoConIdType id;
+    Std_ReturnType   res;
+
+    res = SoAd_SoCon_Lookup(&id, socket_id);
+    if (res == E_OK) {
+
+    }
 }
 
 void SoAd_TcpIpEvent(
@@ -167,6 +284,12 @@ void SoAd_TcpIpEvent(
         TcpIp_EventType             event
     )
 {
+    SoAd_SoConIdType id;
+    Std_ReturnType   res;
+
+    res = SoAd_SoCon_Lookup(&id, socket_id);
+    if (res == E_OK) {
+    }
 }
 
 void SoAd_TxConfirmation(
@@ -174,6 +297,13 @@ void SoAd_TxConfirmation(
         uint16                      len
     )
 {
+    SoAd_SoConIdType id;
+    Std_ReturnType   res;
+
+    res = SoAd_SoCon_Lookup(&id, socket_id);
+    if (res == E_OK) {
+
+    }
 }
 
 Std_ReturnType SoAd_TcpAccepted(
@@ -182,13 +312,50 @@ Std_ReturnType SoAd_TcpAccepted(
         const TcpIp_SockAddrType*   remote
     )
 {
-    return E_NOT_OK;
+    SoAd_SoConIdType id;
+    Std_ReturnType   res;
+
+    res = SoAd_SoCon_Lookup(&id, socket_id);
+    if (res == E_OK) {
+        const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
+        const SoAd_SoGrpConfigType* group  = SoAd_Config->groups[config->group];
+        SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id];
+        SoAd_SoConIdType            id_connected;
+
+        if (group->initiate == FALSE) {
+            res = SoAd_SoCon_Lookup_FreeSocket(&id_connected, config->group, remote);
+            if (res == E_OK) {
+                SoAd_SoConStatusType* status_connected = &SoAd_SoConStatus[id_connected];
+                status_connected->socket_id = socket_id_connected;
+                SoAd_SockAddrCopy(status_connected->remote, remote);
+            }
+        }
+    }
+
+    return res;
 }
 
 void SoAd_TcpConnected(
         TcpIp_SocketIdType          socket_id
     )
 {
+    SoAd_SoConIdType id;
+    Std_ReturnType   res;
+
+    res = SoAd_SoCon_Lookup(&id, socket_id);
+    if (res == E_OK) {
+        const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
+        const SoAd_SoGrpConfigType* group  = SoAd_Config->groups[config->group];
+        SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id];
+
+        if (group->initiate) {
+            if (status->state != SOAD_SOCON_ONLINE) {
+                if (group->protocol == TCPIP_IPPROTO_TCP) {
+                    SoAd_SoCon_EnterState(id, SOAD_SOCON_ONLINE);
+                }
+            }
+        }
+    }
 }
 
 BufReq_ReturnType SoAd_CopyTxData(
@@ -363,16 +530,33 @@ void SoAd_SoCon_State_Offline(SoAd_SoConIdType id)
         res = SoAd_SoCon_PerformOpen(id);
         if (res == E_OK) {
             if (config_group->protocol == TCPIP_IPPROTO_TCP) {
-                status->state = SOAD_SOCON_RECONNECT;
+                SoAd_SoCon_EnterState(id, SOAD_SOCON_RECONNECT);
             } else if (config_group->protocol == TCPIP_IPPROTO_UDP) {
                 if (SoAd_SockAddrWildcard(&status->remote.base) != FALSE) {
-                    status->state = SOAD_SOCON_RECONNECT;
+                    SoAd_SoCon_EnterState(id, SOAD_SOCON_RECONNECT);
                 } else {
-                    status->state = SOAD_SOCON_ONLINE;
+                    SoAd_SoCon_EnterState(id, SOAD_SOCON_ONLINE);
                 }
             }
         }
     }
+}
+
+static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state)
+{
+    SoAd_SoConStatusType* status = &SoAd_SoConStatus[id];
+
+    switch(state) {
+        case SOAD_SOCON_OFFLINE:
+            break;
+        case SOAD_SOCON_RECONNECT:
+            break;
+        case SOAD_SOCON_ONLINE:
+            break;
+        default:
+            break;
+    }
+    status->state = state;
 }
 
 void SoAd_SoCon_MainFunction(SoAd_SoConIdType id)
