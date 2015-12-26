@@ -205,6 +205,21 @@ static Std_ReturnType SoAd_SoCon_Lookup(SoAd_SoConIdType *id, TcpIp_SocketIdType
     return res;
 }
 
+
+static Std_ReturnType SoAd_SoGrp_Lookup(SoAd_SoGrpIdType *id, TcpIp_SocketIdType socket_id)
+{
+    Std_ReturnType   res = E_NOT_OK;
+    SoAd_SoConIdType index;
+    for (index = 0u; index < SOAD_CFG_CONNECTIONGROUP_COUNT; ++index) {
+        if (SoAd_SoGrpStatus[index].socket_id == socket_id) {
+            res = E_OK;
+            *id = index;
+            break;
+        }
+    }
+    return res;
+}
+
 static Std_ReturnType SoAd_SoCon_Lookup_FreeSocket(
         SoAd_SoConIdType*         id,
         SoAd_SoGrpIdType          group,
@@ -214,10 +229,10 @@ static Std_ReturnType SoAd_SoCon_Lookup_FreeSocket(
     Std_ReturnType   res = E_NOT_OK;
     SoAd_SoConIdType index;
     for (index = 0u; index < SOAD_CFG_CONNECTION_COUNT; ++index) {
-        const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
-        const SoAd_SoConStatusType* status = &SoAd_SoConStatus[id];
+        const SoAd_SoConConfigType* config = SoAd_Config->connections[index];
+        const SoAd_SoConStatusType* status = &SoAd_SoConStatus[index];
 
-        if (status->state == SOAD_SOCON_OFFLINE) {
+        if (status->state != SOAD_SOCON_OFFLINE) {
             if (config->group == group) {
                 if (config->remote) {
                     if (SoAd_SockAddrWildcardMatch(config->remote, remote) == TRUE) {
@@ -233,14 +248,6 @@ static Std_ReturnType SoAd_SoCon_Lookup_FreeSocket(
             }
         }
     }
-
-    if (res == E_OK) {
-        const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
-        if (config->remote) {
-
-        }
-    }
-
     return res;
 }
 
@@ -312,22 +319,21 @@ Std_ReturnType SoAd_TcpAccepted(
         const TcpIp_SockAddrType*   remote
     )
 {
-    SoAd_SoConIdType id;
+    SoAd_SoGrpIdType id_group;
     Std_ReturnType   res;
 
-    res = SoAd_SoCon_Lookup(&id, socket_id);
+    res = SoAd_SoGrp_Lookup(&id_group, socket_id);
     if (res == E_OK) {
-        const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
-        const SoAd_SoGrpConfigType* group  = SoAd_Config->groups[config->group];
-        SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id];
+        const SoAd_SoGrpConfigType* group  = SoAd_Config->groups[id_group];
         SoAd_SoConIdType            id_connected;
 
         if (group->initiate == FALSE) {
-            res = SoAd_SoCon_Lookup_FreeSocket(&id_connected, config->group, remote);
+            res = SoAd_SoCon_Lookup_FreeSocket(&id_connected, id_group, remote);
             if (res == E_OK) {
                 SoAd_SoConStatusType* status_connected = &SoAd_SoConStatus[id_connected];
                 status_connected->socket_id = socket_id_connected;
-                SoAd_SockAddrCopy(status_connected->remote, remote);
+                SoAd_SockAddrCopy(&status_connected->remote, remote);
+                SoAd_SoCon_EnterState(id_connected, SOAD_SOCON_ONLINE);
             }
         }
     }
