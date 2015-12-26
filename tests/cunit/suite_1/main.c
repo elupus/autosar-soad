@@ -77,16 +77,23 @@ const SoAd_SoConConfigType           socket_group_2_conn_1 = {
 
 const SoAd_PduRouteType              pdu_route_1;
 
+#define SOCKET_GRP1      0
+#define SOCKET_GRP2      1
+
+#define SOCKET_GRP1_CON1 0
+#define SOCKET_GRP1_CON2 1
+#define SOCKET_GRP2_CON1 2
+
 const SoAd_ConfigType config = {
     .groups = {
-        &socket_group_1,
-        &socket_group_2,
+        [SOCKET_GRP1] = &socket_group_1,
+        [SOCKET_GRP2] = &socket_group_2,
     },
 
     .connections = {
-        &socket_group_1_conn_1,
-        &socket_group_1_conn_2,
-        &socket_group_2_conn_1,
+        [SOCKET_GRP1_CON1] = &socket_group_1_conn_1,
+        [SOCKET_GRP1_CON2] = &socket_group_1_conn_2,
+        [SOCKET_GRP2_CON1] = &socket_group_2_conn_1,
     },
 
     .socket_routes     = {
@@ -254,43 +261,68 @@ void main_add_generic_suite(CU_pSuite suite)
 
 void main_test_mainfunction_open()
 {
-    SoAd_SoConIdType id;
     struct suite_socket_state* socket_state;
 
-    CU_ASSERT_EQUAL(SoAd_SoConStatus[0].state, SOAD_SOCON_OFFLINE);
-    CU_ASSERT_EQUAL(SoAd_SoConStatus[1].state, SOAD_SOCON_OFFLINE);
-    CU_ASSERT_EQUAL(SoAd_SoConStatus[2].state, SOAD_SOCON_OFFLINE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].state, SOAD_SOCON_OFFLINE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON2].state, SOAD_SOCON_OFFLINE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].state, SOAD_SOCON_OFFLINE);
     SoAd_MainFunction();
 
     /* TCP listen socket should be bound and listening */
-    id = 0u;
-    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[id].socket_id, TCPIP_SOCKETID_INVALID);
-    socket_state = &suite_state.sockets[SoAd_SoConStatus[id].socket_id];
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoGrpStatus[SOCKET_GRP1].socket_id, TCPIP_SOCKETID_INVALID);
+    socket_state = &suite_state.sockets[SoAd_SoGrpStatus[SOCKET_GRP1].socket_id];
     CU_ASSERT_EQUAL(socket_state->retrieve    , TRUE);
     CU_ASSERT_EQUAL(socket_state->bound       , TRUE);
     CU_ASSERT_EQUAL(socket_state->listen      , TRUE);
     CU_ASSERT_EQUAL(socket_state->connect     , FALSE);
-    CU_ASSERT_EQUAL(SoAd_SoConStatus[id].state, SOAD_SOCON_RECONNECT);
 
     /* TCP extra sockets should be just waiting to connect */
-    id = 1u;
-    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[id].socket_id, TCPIP_SOCKETID_INVALID);
-    CU_ASSERT_EQUAL(SoAd_SoConStatus[id].state, SOAD_SOCON_RECONNECT);
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].socket_id, TCPIP_SOCKETID_INVALID);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].state, SOAD_SOCON_RECONNECT);
 
-    /* UDP socket should be bound, but not listening or connected */
-    id = 2u;
-    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[id].socket_id, TCPIP_SOCKETID_INVALID);
-    socket_state = &suite_state.sockets[SoAd_SoConStatus[id].socket_id];
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP1_CON2].socket_id, TCPIP_SOCKETID_INVALID);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON2].state, SOAD_SOCON_RECONNECT);
+
+    /* UDP group socket should be bound, but not listening or connected */
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoGrpStatus[SOCKET_GRP2].socket_id, TCPIP_SOCKETID_INVALID);
+    socket_state = &suite_state.sockets[SoAd_SoGrpStatus[SOCKET_GRP2].socket_id];
     CU_ASSERT_EQUAL(socket_state->retrieve    , TRUE);
     CU_ASSERT_EQUAL(socket_state->bound       , TRUE);
     CU_ASSERT_EQUAL(socket_state->listen      , FALSE);
     CU_ASSERT_EQUAL(socket_state->connect     , FALSE);
-    CU_ASSERT_EQUAL(SoAd_SoConStatus[id].state, SOAD_SOCON_RECONNECT);
+
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].socket_id, TCPIP_SOCKETID_INVALID);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].state, SOAD_SOCON_RECONNECT);
+}
+
+void main_test_mainfunction_accept(void)
+{
+    TcpIp_SockAddrInetType inet;
+    inet.domain  = TCPIP_AF_INET;
+    inet.addr[0] = 1;
+    inet.port    = 1;
+
+    CU_ASSERT_EQUAL(SoAd_TcpAccepted(SoAd_SoGrpStatus[SOCKET_GRP1].socket_id
+                                   , SoAd_SoGrpStatus[SOCKET_GRP1].socket_id + 100u
+                                   , (TcpIp_SockAddrType*)&inet)
+                  , E_OK);
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].socket_id
+                           , TCPIP_SOCKETID_INVALID);
+
+    struct suite_socket_state* socket_state;
+    socket_state = &suite_state.sockets[SoAd_SoConStatus[SOCKET_GRP1_CON1].socket_id];
+    CU_ASSERT_EQUAL(socket_state->retrieve    , FALSE);
+    CU_ASSERT_EQUAL(socket_state->bound       , FALSE);
+    CU_ASSERT_EQUAL(socket_state->listen      , FALSE);
+    CU_ASSERT_EQUAL(socket_state->connect     , FALSE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].state
+                 , SOAD_SOCON_ONLINE);
 }
 
 void main_add_mainfunction_suite(CU_pSuite suite)
 {
     CU_add_test(suite, "open"             , main_test_mainfunction_open);
+    CU_add_test(suite, "accept"           , main_test_mainfunction_accept);
 }
 
 int main(void)
