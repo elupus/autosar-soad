@@ -481,38 +481,44 @@ static Std_ReturnType SoAd_SoCon_PerformOpen(SoAd_SoConIdType id)
     SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
     SoAd_SoGrpStatusType*       status_group = &SoAd_SoGrpStatus[config->group];
     Std_ReturnType              res;
+    TcpIp_SocketIdType         *socket_id;
 
     status->request_open = FALSE;
 
-    if (status_group->socket_id == TCPIP_SOCKETID_INVALID) {
+    /*
+     * for initiating sockets, the connection itself needs a socket
+     * for waiting sockets, it's the socket group that holds the socket
+     */
+    if (config_group->initiate) {
+        socket_id = &status->socket_id;
+    } else {
+        socket_id = &status_group->socket_id;
+    }
+
+    if (*socket_id == TCPIP_SOCKETID_INVALID) {
         res = TcpIp_SoAdGetSocket(config_group->domain
                                 , config_group->protocol
-                                , &status->socket_id);
+                                , socket_id);
         if (res == E_OK) {
             uint16 localport = config_group->localport;
-            res = TcpIp_Bind(status->socket_id
+            res = TcpIp_Bind(*socket_id
                            , TCPIP_LOCALADDRID_ANY
                            , &localport);
 
             if (res == E_OK) {
                 if (config_group->protocol == TCPIP_IPPROTO_TCP) {
                     if (config_group->initiate) {
-                        res = TcpIp_TcpConnect(status->socket_id
+                        res = TcpIp_TcpConnect(*socket_id
                                              , &status->remote.base);
                     } else {
-                        res = TcpIp_TcpListen(status->socket_id
+                        res = TcpIp_TcpListen(*socket_id
                                              , SOAD_CFG_CONNECTION_COUNT);
                     }
-                }
-
-                if (res == E_OK) {
-                    status_group->socket_id = status->socket_id;
                 }
             }
         }
     } else {
         res = E_OK;
-        /* TODO - mark active */
     }
 
     return res;
