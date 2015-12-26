@@ -57,7 +57,7 @@ typedef struct {
 SoAd_SoConStatusType SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
 SoAd_SoGrpStatusType SoAd_SoGrpStatus[SOAD_CFG_CONNECTIONGROUP_COUNT];
 
-static uint32 SoAd_Ip6Any[] = {
+static const uint32 SoAd_Ip6Any[] = {
         TCPIP_IP6ADDR_ANY,
         TCPIP_IP6ADDR_ANY,
         TCPIP_IP6ADDR_ANY,
