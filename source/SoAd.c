@@ -541,7 +541,16 @@ void SoAd_SoCon_State_Offline(SoAd_SoConIdType id)
             if (config_group->protocol == TCPIP_IPPROTO_TCP) {
                 SoAd_SoCon_EnterState(id, SOAD_SOCON_RECONNECT);
             } else if (config_group->protocol == TCPIP_IPPROTO_UDP) {
-                if (SoAd_SockAddrWildcard(&status->remote.base) != FALSE) {
+
+                /**
+                 * @req SWS_SoAd_00686
+                 * @req SWS_SoAd_00591
+                 *
+                 * SoAdSocketUdpListenOnly should possibly be checked here, but
+                 * it seems redundant based on the wildcard check
+                 */
+
+                if (SoAd_SockAddrWildcard(&status->remote.base) == TRUE) {
                     SoAd_SoCon_EnterState(id, SOAD_SOCON_RECONNECT);
                 } else {
                     SoAd_SoCon_EnterState(id, SOAD_SOCON_ONLINE);
