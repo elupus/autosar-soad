@@ -345,5 +345,9 @@ Std_ReturnType TcpIp_TcpTransmit(
         boolean             force
     );
 
+Std_ReturnType TcpIp_Close(
+        TcpIp_SocketIdType          id,
+        boolean                     abort
+    );
 
 #endif /* TCPIP_H_ */

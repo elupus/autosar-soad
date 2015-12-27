@@ -188,6 +188,19 @@ Std_ReturnType TcpIp_TcpConnect(
     return E_OK;
 }
 
+
+Std_ReturnType TcpIp_Close(
+        TcpIp_SocketIdType          id,
+        boolean                     abort
+    )
+{
+    suite_state.sockets[id].connect  = FALSE;
+    suite_state.sockets[id].bound    = FALSE;
+    suite_state.sockets[id].listen   = FALSE;
+    suite_state.sockets[id].retrieve = FALSE;
+    return E_OK;
+}
+
 int suite_init(void)
 {
     suite_state.socket_id  = 1u;

@@ -332,22 +332,82 @@ void SoAd_RxIndication(
     }
 }
 
+/**
+ * @brief Close down a socket group
+ *
+ * @req SWS_SoAd_00646
+ * @req SWS_SoAd_00643
+ *
+ * Specification is unclear on how to handle sockets
+ * that are in RECONNECT state, ie for example all
+ * child sockets of a listening group socket. This
+ * implementation will close down all group sockets
+ * if the "master" socket is lost.
+ */
+static void SoAd_SoGrp_Close(SoAd_SoGrpIdType id_grp)
+{
+    SoAd_SoConIdType id_con;
+
+    const SoAd_SoGrpConfigType* config_grp = SoAd_Config->groups[id_con];
+    SoAd_SoGrpStatusType* status_grp = &SoAd_SoGrpStatus[id_con];
+    status_grp->socket_id = TCPIP_SOCKETID_INVALID;
+
+    for (id_con = 0u; id_con < SOAD_CFG_CONNECTION_COUNT; ++id_con) {
+        const SoAd_SoConConfigType* config = SoAd_Config->connections[id_con];
+        const SoAd_SoConStatusType* status = &SoAd_SoConStatus[id_con];
+        if (config->group == id_grp && status->socket_id == TCPIP_SOCKETID_INVALID) {
+            SoAd_SoCon_EnterState(id_con, SOAD_SOCON_OFFLINE);
+        }
+    }
+}
+
 void SoAd_TcpIpEvent(
         TcpIp_SocketIdType          socket_id,
         TcpIp_EventType             event
     )
 {
-    SoAd_SoConIdType id;
+    SoAd_SoConIdType id_con;
+    SoAd_SoGrpIdType id_grp;
     Std_ReturnType   res;
 
-    res = SoAd_SoGrp_Lookup(&id, socket_id);
-    if (res == E_OK) {
+    /**
+     * @req SWS_SoAd_00276
+     */
+    SOAD_DET_CHECK_RET(SoAd_Config != NULL_PTR
+                     , SOAD_API_TCPIPEVENT
+                     , SOAD_E_NOTINIT);
 
-    } else {
-        res = SoAd_SoCon_Lookup(&id, socket_id);
-        if (res == E_OK) {
-        }
+
+    switch (event) {
+        case TCPIP_TCP_FIN_RECEIVED:
+            (void)TcpIp_Close(socket_id, FALSE);
+            break;
+
+        case TCPIP_TCP_RESET:
+        case TCPIP_TCP_CLOSED:
+        case TCPIP_UDP_CLOSED:
+            res = SoAd_SoGrp_Lookup(&id_grp, socket_id);
+            if (res == E_OK) {
+                SoAd_SoGrp_Close(id_grp);
+            } else {
+                res = SoAd_SoCon_Lookup(&id_con, socket_id);
+                if (res == E_OK) {
+                    SoAd_SoCon_EnterState(id_con, SOAD_SOCON_OFFLINE);
+                } else {
+                    /**
+                     * @req SWS_SoAd_00277
+                     */
+                    SOAD_DET_ERROR(SOAD_API_RXINDICATION
+                                 , SOAD_E_INV_SOCKETID);
+                }
+            }
+            break;
+        default:
+            SOAD_DET_ERROR(SOAD_API_TCPIPEVENT
+                         , SOAD_E_INV_ARG);
+            break;
     }
+
 }
 
 void SoAd_TxConfirmation(
