@@ -680,6 +680,7 @@ static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state
 
     switch(state) {
         case SOAD_SOCON_OFFLINE:
+            status->socket_id = TCPIP_SOCKETID_INVALID;
             break;
         case SOAD_SOCON_RECONNECT:
             break;
