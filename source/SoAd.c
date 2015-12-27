@@ -228,6 +228,10 @@ static Std_ReturnType SoAd_SoCon_Lookup_FreeSocket(
         const SoAd_SoConConfigType* config = SoAd_Config->connections[index];
         const SoAd_SoConStatusType* status = &SoAd_SoConStatus[index];
 
+        if (status->socket_id != TCPIP_SOCKETID_INVALID) {
+            continue;
+        }
+
         if (status->state != SOAD_SOCON_OFFLINE) {
             if (config->group == group) {
                 if (config->remote) {
