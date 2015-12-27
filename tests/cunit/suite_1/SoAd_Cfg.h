@@ -23,6 +23,6 @@
  #define SOAD_CFG_SOCKETROUTE_COUNT     1u
  #define SOAD_CFG_PDUROUTE_COUNT        1u
  #define SOAD_CFG_CONNECTIONGROUP_COUNT 2u
- #define SOAD_CFG_CONNECTION_COUNT      3u
+ #define SOAD_CFG_CONNECTION_COUNT      4u
 
 #endif /* SOAD_CFG_H_ */

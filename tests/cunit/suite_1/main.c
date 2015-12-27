@@ -69,8 +69,12 @@ const SoAd_SoConConfigType           socket_group_1_conn_2 = {
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
 };
 
-
 const SoAd_SoConConfigType           socket_group_2_conn_1 = {
+    .group = 1u,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+};
+
+const SoAd_SoConConfigType           socket_group_2_conn_2 = {
     .group = 1u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
 };
@@ -83,6 +87,7 @@ const SoAd_PduRouteType              pdu_route_1;
 #define SOCKET_GRP1_CON1 0
 #define SOCKET_GRP1_CON2 1
 #define SOCKET_GRP2_CON1 2
+#define SOCKET_GRP2_CON2 3
 
 const SoAd_ConfigType config = {
     .groups = {
@@ -94,6 +99,7 @@ const SoAd_ConfigType config = {
         [SOCKET_GRP1_CON1] = &socket_group_1_conn_1,
         [SOCKET_GRP1_CON2] = &socket_group_1_conn_2,
         [SOCKET_GRP2_CON1] = &socket_group_2_conn_1,
+        [SOCKET_GRP2_CON2] = &socket_group_2_conn_2,
     },
 
     .socket_routes     = {
@@ -329,11 +335,44 @@ void main_test_mainfunction_accept_2(void)
     main_test_mainfunction_accept(SOCKET_GRP1, SOCKET_GRP1_CON2);
 }
 
+void main_test_mainfunction_receive_udp_online(SoAd_SoGrpIdType id_grp, SoAd_SoConIdType id_con)
+{
+    TcpIp_SockAddrInetType inet;
+    inet.domain  = TCPIP_AF_INET;
+    inet.addr[0] = 1;
+    inet.port    = id_con;
+
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[id_con].state
+                           , SOAD_SOCON_RECONNECT);
+
+
+    SoAd_RxIndication(SoAd_SoGrpStatus[id_grp].socket_id
+                    , (TcpIp_SockAddrType*)&inet
+                    , NULL
+                    , 0);
+
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[id_con].state
+                           , SOAD_SOCON_ONLINE);
+
+}
+
+void main_test_mainfunction_receive_udp_1()
+{
+    main_test_mainfunction_receive_udp_online(SOCKET_GRP2, SOCKET_GRP2_CON1);
+}
+
+void main_test_mainfunction_receive_udp_2()
+{
+    main_test_mainfunction_receive_udp_online(SOCKET_GRP2, SOCKET_GRP2_CON2);
+}
+
 void main_add_mainfunction_suite(CU_pSuite suite)
 {
-    CU_add_test(suite, "open"             , main_test_mainfunction_open);
-    CU_add_test(suite, "accept_1"         , main_test_mainfunction_accept_1);
-    CU_add_test(suite, "accept_2"         , main_test_mainfunction_accept_2);
+    CU_add_test(suite, "open"              , main_test_mainfunction_open);
+    CU_add_test(suite, "accept_1"          , main_test_mainfunction_accept_1);
+    CU_add_test(suite, "accept_2"          , main_test_mainfunction_accept_2);
+    CU_add_test(suite, "receive_udp_1"     , main_test_mainfunction_receive_udp_1);
+    CU_add_test(suite, "receive_udp_2"     , main_test_mainfunction_receive_udp_2);
 }
 
 int main(void)
