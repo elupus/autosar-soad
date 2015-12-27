@@ -397,7 +397,7 @@ void SoAd_TcpIpEvent(
                     /**
                      * @req SWS_SoAd_00277
                      */
-                    SOAD_DET_ERROR(SOAD_API_RXINDICATION
+                    SOAD_DET_ERROR(SOAD_API_TCPIPEVENT
                                  , SOAD_E_INV_SOCKETID);
                 }
             }
