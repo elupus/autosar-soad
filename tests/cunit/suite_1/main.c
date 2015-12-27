@@ -295,34 +295,45 @@ void main_test_mainfunction_open()
     CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].state, SOAD_SOCON_RECONNECT);
 }
 
-void main_test_mainfunction_accept(void)
+void main_test_mainfunction_accept(SoAd_SoGrpIdType id_grp, SoAd_SoConIdType id_con)
 {
     TcpIp_SockAddrInetType inet;
     inet.domain  = TCPIP_AF_INET;
     inet.addr[0] = 1;
     inet.port    = 1;
 
-    CU_ASSERT_EQUAL(SoAd_TcpAccepted(SoAd_SoGrpStatus[SOCKET_GRP1].socket_id
-                                   , SoAd_SoGrpStatus[SOCKET_GRP1].socket_id + 100u
+    CU_ASSERT_EQUAL(SoAd_TcpAccepted(SoAd_SoGrpStatus[id_grp].socket_id
+                                   , ++suite_state.socket_id
                                    , (TcpIp_SockAddrType*)&inet)
                   , E_OK);
-    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].socket_id
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[id_con].socket_id
                            , TCPIP_SOCKETID_INVALID);
 
     struct suite_socket_state* socket_state;
-    socket_state = &suite_state.sockets[SoAd_SoConStatus[SOCKET_GRP1_CON1].socket_id];
+    socket_state = &suite_state.sockets[SoAd_SoConStatus[id_con].socket_id];
     CU_ASSERT_EQUAL(socket_state->retrieve    , FALSE);
     CU_ASSERT_EQUAL(socket_state->bound       , FALSE);
     CU_ASSERT_EQUAL(socket_state->listen      , FALSE);
     CU_ASSERT_EQUAL(socket_state->connect     , FALSE);
-    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].state
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[id_con].state
                  , SOAD_SOCON_ONLINE);
+}
+
+void main_test_mainfunction_accept_1(void)
+{
+    main_test_mainfunction_accept(SOCKET_GRP1, SOCKET_GRP1_CON1);
+}
+
+void main_test_mainfunction_accept_2(void)
+{
+    main_test_mainfunction_accept(SOCKET_GRP1, SOCKET_GRP1_CON2);
 }
 
 void main_add_mainfunction_suite(CU_pSuite suite)
 {
     CU_add_test(suite, "open"             , main_test_mainfunction_open);
-    CU_add_test(suite, "accept"           , main_test_mainfunction_accept);
+    CU_add_test(suite, "accept_1"         , main_test_mainfunction_accept_1);
+    CU_add_test(suite, "accept_2"         , main_test_mainfunction_accept_2);
 }
 
 int main(void)
