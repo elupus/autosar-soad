@@ -202,7 +202,6 @@ static Std_ReturnType SoAd_SoCon_Lookup(SoAd_SoConIdType *id, TcpIp_SocketIdType
     return res;
 }
 
-
 static Std_ReturnType SoAd_SoGrp_Lookup(SoAd_SoGrpIdType *id, TcpIp_SocketIdType socket_id)
 {
     Std_ReturnType   res = E_NOT_OK;
