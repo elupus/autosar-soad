@@ -234,17 +234,11 @@ static Std_ReturnType SoAd_SoCon_Lookup_FreeSocket(
 
         if (status->state != SOAD_SOCON_OFFLINE) {
             if (config->group == group) {
-                if (config->remote) {
-                    if (SoAd_SockAddrWildcardMatch(config->remote, remote) == TRUE) {
-                        res = E_OK;
-                    }
-                } else {
+                if (SoAd_SockAddrWildcardMatch((TcpIp_SockAddrType*)&status->remote, remote) == TRUE) {
                     res = E_OK;
-                }
-                if (res == E_OK) {
                     *id = index;
+                    break;
                 }
-                break;
             }
         }
     }
