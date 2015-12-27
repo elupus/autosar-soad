@@ -273,12 +273,64 @@ void SoAd_RxIndication(
         uint16                      len
     )
 {
-    SoAd_SoConIdType id;
+    SoAd_SoConIdType id_con;
+    SoAd_SoGrpIdType id_grp;
     Std_ReturnType   res;
 
-    res = SoAd_SoCon_Lookup(&id, socket_id);
-    if (res == E_OK) {
+    /**
+     * @req SWS_SoAd_00264
+     */
+    SOAD_DET_CHECK_RET(SoAd_Config != NULL_PTR
+                     , SOAD_API_RXINDICATION
+                     , SOAD_E_NOTINIT);
 
+
+    /**
+     * @req SWS_SoAd_00264
+     */
+    SOAD_DET_CHECK_RET(remote != NULL_PTR
+                     , SOAD_API_RXINDICATION
+                     , SOAD_E_INV_ARG.);
+
+
+
+    res = SoAd_SoGrp_Lookup(&id_grp, socket_id);
+    if (res == E_OK) {
+        res = SoAd_SoCon_Lookup_FreeSocket(&id_con, id_grp, remote);
+    } else {
+        res = SoAd_SoCon_Lookup(&id_con, socket_id);
+    }
+
+    if (res == E_OK) {
+        const SoAd_SoConConfigType* config_con = SoAd_Config->connections[id_con];
+        SoAd_SoConStatusType*       status_con = &SoAd_SoConStatus[id_con];
+        const SoAd_SoGrpConfigType* config_grp = SoAd_Config->groups[id_grp];
+
+        /**
+         * @req SWS_SoAd_00592
+         */
+        if (status_con->state != SOAD_SOCON_ONLINE) {
+            if (config_grp->protocol == TCPIP_IPPROTO_UDP) {
+                if (config_grp->listen_only == FALSE) {
+                    if (SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&status_con->remote) == TRUE) {
+                        /* TODO - (4) SoAdSocketMsgAcceptanceFilterEnabled */
+                        /* TODO - (6) Acceptance policy */
+                        SoAd_SockAddrCopy(&status_con->remote, remote);
+                        SoAd_SoCon_EnterState(id_con, SOAD_SOCON_ONLINE);
+                    }
+                }
+            }
+        }
+
+        /* TODO - handle data */
+
+
+    } else {
+        /**
+         * @req SWS_SoAd_00267
+         */
+        SOAD_DET_ERROR(SOAD_API_RXINDICATION
+                     , SOAD_E_INV_SOCKETID);
     }
 }
 

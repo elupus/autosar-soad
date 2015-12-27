@@ -104,6 +104,7 @@ typedef struct {
     TcpIp_ProtocolType                protocol;
     boolean                           automatic;          /**< SoAdSocketAutomaticSoConSetup */
     boolean                           initiate;           /**< SoAdSocketTcpInitiate */
+    boolean                           listen_only;        /**< SoAdSocketUdpListenOnly */
 } SoAd_SoGrpConfigType;
 
 typedef struct {
