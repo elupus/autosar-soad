@@ -291,8 +291,13 @@ void SoAd_TcpIpEvent(
     SoAd_SoConIdType id;
     Std_ReturnType   res;
 
-    res = SoAd_SoCon_Lookup(&id, socket_id);
+    res = SoAd_SoGrp_Lookup(&id, socket_id);
     if (res == E_OK) {
+
+    } else {
+        res = SoAd_SoCon_Lookup(&id, socket_id);
+        if (res == E_OK) {
+        }
     }
 }
 
