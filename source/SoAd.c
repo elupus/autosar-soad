@@ -100,10 +100,7 @@ static boolean SoAd_SockAddrWildcard(const TcpIp_SockAddrType* addr)
             break;
         case TCPIP_AF_INET6: {
                 const TcpIp_SockAddrInet6Type* inet6 = (const TcpIp_SockAddrInet6Type*)addr;
-                if ((inet6->addr[0] == TCPIP_IPADDR_ANY)
-                &&  (inet6->addr[1] == TCPIP_IPADDR_ANY)
-                &&  (inet6->addr[2] == TCPIP_IPADDR_ANY)
-                &&  (inet6->addr[3] == TCPIP_IPADDR_ANY)) {
+                if (memcmp(inet6->addr, SoAd_Ip6Any, sizeof(SoAd_Ip6Any)) == 0) {
                     res = TRUE;
                 }
 
