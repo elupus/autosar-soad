@@ -77,5 +77,15 @@ typedef enum {
 	BUFREQ_E_OVFL
 } BufReq_ReturnType;
 
+typedef enum {
+    TP_DATACONF    = 0x00,
+    TP_DATARETRY   = 0x01,
+    TP_CONFPENDING = 0x02,
+} TpDataStateType;
+
+typedef struct {
+    TpDataStateType TpDataState;
+    PduLengthType   TxTpDataCnt;
+} RetryInfoType;
 
 #endif /*COMSTACK_TYPES_H_*/
