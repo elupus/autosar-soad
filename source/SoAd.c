@@ -54,6 +54,23 @@ typedef struct {
     TcpIp_SocketIdType        socket_id;
 } SoAd_SoGrpStatusType;
 
+typedef struct {
+    SoAd_SoConIdType            id;
+    const SoAd_SoConConfigType* config;
+    SoAd_SoConStatusType*       status;
+} SoAd_SoConCtxType;
+
+typedef struct {
+    SoAd_SoGrpIdType            id;
+    const SoAd_SoGrpConfigType* config;
+    SoAd_SoGrpStatusType*       status;
+} SoAd_SoGrpCtxType;
+
+typedef struct {
+    SoAd_SoConCtxType con;
+    SoAd_SoGrpCtxType grp;
+} SoAd_SoCtxType;
+
 SoAd_SoConStatusType SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
 SoAd_SoGrpStatusType SoAd_SoGrpStatus[SOAD_CFG_CONNECTIONGROUP_COUNT];
 
@@ -63,6 +80,27 @@ static const uint32 SoAd_Ip6Any[] = {
         TCPIP_IP6ADDR_ANY,
         TCPIP_IP6ADDR_ANY
 };
+
+
+static void SoAd_GetSoConCtx(SoAd_SoConCtxType* ctx, SoAd_SoConIdType id)
+{
+    ctx->id     = id;
+    ctx->config = SoAd_Config->connections[id];
+    ctx->status = &SoAd_SoConStatus[id];
+}
+
+static void SoAd_GetSoGrpCtx(SoAd_SoGrpCtxType* ctx, SoAd_SoGrpIdType id)
+{
+    ctx->id     = id;
+    ctx->config = SoAd_Config->groups[id];
+    ctx->status = &SoAd_SoGrpStatus[id];
+}
+
+static void SoAd_GetSoCtx(SoAd_SoCtxType* ctx, SoAd_SoConIdType id)
+{
+    SoAd_GetSoConCtx(&ctx->con, id);
+    SoAd_GetSoGrpCtx(&ctx->grp, ctx->con.config->group);
+}
 
 static void SoAd_SockAddrCopy(TcpIp_SockAddrStorageType* trg, const TcpIp_SockAddrType* src)
 {
