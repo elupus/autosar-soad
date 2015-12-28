@@ -98,16 +98,13 @@ typedef enum {
 typedef uint8 SoAd_SoConIdType;
 typedef uint8 SoAd_SoGrpIdType;
 
-typedef struct {
-    uint16                            localport;          /**< SoAdSocketLocalPort */
-    TcpIp_DomainType                  domain;             /**< domain of local interface */
-    TcpIp_ProtocolType                protocol;
-    boolean                           automatic;          /**< SoAdSocketAutomaticSoConSetup */
-    boolean                           initiate;           /**< SoAdSocketTcpInitiate */
-    boolean                           listen_only;        /**< SoAdSocketUdpListenOnly */
-} SoAd_SoGrpConfigType;
+typedef enum {
+    SOAD_UPPER_LAYER_IF,
+    SOAD_UPPER_LAYER_TP,
+} SoAd_UpperLayerType;
 
 typedef struct {
+    SoAd_UpperLayerType               upper_type;         /**< SoAdRxUpperLayerType */
     PduIdType                         pdu;                /**< SoAdRxPduRef */
 } SoAd_SocketRouteDestType;
 
@@ -117,8 +114,19 @@ typedef struct {
 } SoAd_SocketRouteType;
 
 typedef struct {
+    uint16                            localport;          /**< SoAdSocketLocalPort */
+    TcpIp_DomainType                  domain;             /**< domain of local interface */
+    TcpIp_ProtocolType                protocol;
+    boolean                           automatic;          /**< SoAdSocketAutomaticSoConSetup */
+    boolean                           initiate;           /**< SoAdSocketTcpInitiate */
+    boolean                           listen_only;        /**< SoAdSocketUdpListenOnly */
+    const SoAd_SocketRouteType*       socket_route;
+} SoAd_SoGrpConfigType;
+
+typedef struct {
     SoAd_SoGrpIdType             group;
     const TcpIp_SockAddrType*    remote;
+    const SoAd_SocketRouteType*  socket_route;
 } SoAd_SoConConfigType;
 
 typedef struct {

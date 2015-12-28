@@ -62,21 +62,25 @@ const SoAd_SocketRouteType           socket_route_1;
 const SoAd_SoConConfigType           socket_group_1_conn_1 = {
     .group  = 0u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route  = &socket_route_1,
 };
 
 const SoAd_SoConConfigType           socket_group_1_conn_2 = {
     .group = 0u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route  = &socket_route_1,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_1 = {
     .group = 1u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route  = &socket_route_1,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_2 = {
     .group = 1u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route  = &socket_route_1,
 };
 
 const SoAd_PduRouteType              pdu_route_1;
@@ -156,6 +160,13 @@ Std_ReturnType TcpIp_TcpTransmit(
     return E_OK;
 }
 
+Std_ReturnType TcpIp_TcpReceived(
+        TcpIp_SocketIdType id,
+        uint32             len
+    )
+{
+    return E_OK;
+}
 
 Std_ReturnType TcpIp_Bind(
         TcpIp_SocketIdType          id,
@@ -199,6 +210,14 @@ Std_ReturnType TcpIp_Close(
     suite_state.sockets[id].listen   = FALSE;
     suite_state.sockets[id].retrieve = FALSE;
     return E_OK;
+}
+
+void PduR_SoAdIfRxIndication(
+            PduIdType           pdu,
+            const PduInfoType*  info
+    )
+{
+
 }
 
 int suite_init(void)

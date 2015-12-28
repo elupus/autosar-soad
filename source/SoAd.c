@@ -19,6 +19,7 @@
 #include "Std_Types.h"
 #include "ComStack_Types.h"
 #include "SoAd.h"
+#include "PduR_SoAd.h"
 #include <string.h>
 
 #if(SOAD_CFG_ENABLE_DEVELOPMENT_ERROR == STD_ON)
@@ -302,6 +303,82 @@ void SoAd_Init(const SoAd_ConfigType* config)
     }
 }
 
+static Std_ReturnType SoAd_GetSocketRoute(const SoAd_SoCtxType* ctx, uint32 header_id, const SoAd_SocketRouteType** route)
+{
+    Std_ReturnType              res;
+
+    /* TODO - there can be multiple routes mapped to each connection */
+    if (ctx->con.config->socket_route) {
+        *route = ctx->con.config->socket_route;
+        res = E_OK;
+    } else if (ctx->grp.config->socket_route) {
+        *route = ctx->grp.config->socket_route;
+        res = E_OK;
+    } else {
+        res = E_NOT_OK;
+    }
+    return res;
+}
+
+static Std_ReturnType SoAd_RxIndication_Pdu(
+        const SoAd_SoCtxType       *ctx,
+        const SoAd_SocketRouteType* route,
+        const PduInfoType*          info
+   )
+{
+    Std_ReturnType res;
+    switch (route->destination.upper_type) {
+        case SOAD_UPPER_LAYER_IF:
+            PduR_SoAdIfRxIndication(route->destination.pdu
+                                  , info);
+            res = E_OK;
+            break;
+        case SOAD_UPPER_LAYER_TP:
+            /* TODO */
+            res = E_NOT_OK;
+            break;
+        default:
+            res = E_OK;
+            break;
+    }
+    return res;
+}
+
+/**
+ * @brief Performs check to see if socket should go online
+ * @req   SWS_SoAd_00592
+ */
+static void SoAd_RxIndication_RemoteOnline(const SoAd_SoCtxType* ctx, const TcpIp_SockAddrType* remote, TcpIp_SockAddrStorageType* restore, SoAd_SoConStateType* state)
+{
+    *state = ctx->con.status->state;
+    if (ctx->con.status->state != SOAD_SOCON_ONLINE) {
+        if (ctx->grp.config->protocol == TCPIP_IPPROTO_UDP) {
+            if (ctx->grp.config->listen_only == FALSE) {
+                if (SoAd_SockAddrWildcard(&ctx->con.status->remote.base) == TRUE) {
+                    /* TODO - (4) SoAdSocketMsgAcceptanceFilterEnabled */
+                    /* TODO - (6) Acceptance policy */
+                    *restore = ctx->con.status->remote;
+                    SoAd_SockAddrCopy(&ctx->con.status->remote, remote);
+                    SoAd_SoCon_EnterState(ctx->con.id, SOAD_SOCON_ONLINE);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Revert remote address change if state mismatches
+ * @req SWS_SoAd_00710
+ */
+static void SoAd_RxIndication_RemoteRevert(const SoAd_SoCtxType* ctx, const TcpIp_SockAddrStorageType* remote, const SoAd_SoConStateType state)
+{
+    if (ctx->con.status->state != state) {
+        ctx->con.status->remote = *remote;
+        SoAd_SoCon_EnterState(ctx->con.id, state);
+    }
+}
+
+
 void SoAd_RxIndication(
         TcpIp_SocketIdType          socket_id,
         const TcpIp_SockAddrType*   remote,
@@ -338,28 +415,29 @@ void SoAd_RxIndication(
     }
 
     if (res == E_OK) {
-        const SoAd_SoConConfigType* config_con = SoAd_Config->connections[id_con];
-        SoAd_SoConStatusType*       status_con = &SoAd_SoConStatus[id_con];
-        const SoAd_SoGrpConfigType* config_grp = SoAd_Config->groups[id_grp];
+        SoAd_SoCtxType ctx;
+        SoAd_GetSoCtx(&ctx, id_con);
+        const SoAd_SocketRouteType* route;
+        TcpIp_SockAddrStorageType   revert_remote;
+        SoAd_SoConStateType         revert_state;
+        SoAd_RxIndication_RemoteOnline(&ctx, remote, &revert_remote, &revert_state);
 
-        /**
-         * @req SWS_SoAd_00592
-         */
-        if (status_con->state != SOAD_SOCON_ONLINE) {
-            if (config_grp->protocol == TCPIP_IPPROTO_UDP) {
-                if (config_grp->listen_only == FALSE) {
-                    if (SoAd_SockAddrWildcard((TcpIp_SockAddrType*)&status_con->remote) == TRUE) {
-                        /* TODO - (4) SoAdSocketMsgAcceptanceFilterEnabled */
-                        /* TODO - (6) Acceptance policy */
-                        SoAd_SockAddrCopy(&status_con->remote, remote);
-                        SoAd_SoCon_EnterState(id_con, SOAD_SOCON_ONLINE);
-                    }
-                }
+        /* TODO - header id handling */
+
+        res = SoAd_GetSocketRoute(&ctx, 0u, &route);
+        if (res == E_OK) {
+            PduInfoType                 info;
+            info.SduDataPtr = buf;
+            info.SduLength  = len;
+            res = SoAd_RxIndication_Pdu(&ctx, route, &info);
+            if (res == E_OK) {
+                (void)TcpIp_TcpReceived(socket_id, info.SduLength);
             }
         }
 
-        /* TODO - handle data */
-
+        if (res != E_OK) {
+            SoAd_RxIndication_RemoteRevert(&ctx, &revert_remote, revert_state);
+        }
 
     } else {
         /**
