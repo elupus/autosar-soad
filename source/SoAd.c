@@ -284,19 +284,27 @@ static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header
     return res;
 }
 
-static Std_ReturnType SoAd_RxIndication_Pdu(
+static Std_ReturnType SoAd_RxIndication_Route(
+        SoAd_SoConIdType            id_con,
         const SoAd_SocketRouteType* route,
-        const PduInfoType*          info
+        uint8*                      buf,
+        uint16                      len
    )
 {
     Std_ReturnType res;
     switch (route->destination.upper_type) {
-        case SOAD_UPPER_LAYER_IF:
+        case SOAD_UPPER_LAYER_IF: {
+            PduInfoType info;
+            info.SduDataPtr = buf;
+            info.SduLength  = len;
+
             PduR_SoAdIfRxIndication(route->destination.pdu
-                                  , info);
+                                  , &info);
             res = E_OK;
             break;
+        }
         case SOAD_UPPER_LAYER_TP:
+
             /* TODO */
             res = E_NOT_OK;
             break;
@@ -313,12 +321,12 @@ static Std_ReturnType SoAd_RxIndication_Pdu(
  */
 static void SoAd_RxIndication_RemoteOnline(SoAd_SoConIdType con_id, const TcpIp_SockAddrType* remote, TcpIp_SockAddrStorageType* restore, SoAd_SoConStateType* state)
 {
-    const SoAd_SoConConfigType* con_config = SoAd_Config->connections[con_id];
-    const SoAd_SoGrpConfigType* grp_config = SoAd_Config->groups[con_config->group];
     SoAd_SoConStatusType*       con_status = &SoAd_SoConStatus[con_id];
 
     *state = con_status->state;
     if (con_status->state != SOAD_SOCON_ONLINE) {
+        const SoAd_SoConConfigType* con_config = SoAd_Config->connections[con_id];
+        const SoAd_SoGrpConfigType* grp_config = SoAd_Config->groups[con_config->group];
         if (grp_config->protocol == TCPIP_IPPROTO_UDP) {
             if (grp_config->listen_only == FALSE) {
                 if (SoAd_SockAddrWildcard(&con_status->remote.base) == TRUE) {
@@ -347,7 +355,6 @@ static void SoAd_RxIndication_RemoteRevert(SoAd_SoConIdType con_id, const TcpIp_
     }
 }
 
-
 void SoAd_RxIndication(
         TcpIp_SocketIdType          socket_id,
         const TcpIp_SockAddrType*   remote,
@@ -356,7 +363,6 @@ void SoAd_RxIndication(
     )
 {
     SoAd_SoConIdType id_con;
-    SoAd_SoGrpIdType id_grp;
     Std_ReturnType   res;
 
     /**
@@ -375,12 +381,13 @@ void SoAd_RxIndication(
                      , SOAD_E_INV_ARG.);
 
 
-
-    res = SoAd_SoGrp_Lookup(&id_grp, socket_id);
-    if (res == E_OK) {
-        res = SoAd_SoCon_Lookup_FreeSocket(&id_con, id_grp, remote);
-    } else {
-        res = SoAd_SoCon_Lookup(&id_con, socket_id);
+    res = SoAd_SoCon_Lookup(&id_con, socket_id);
+    if (res != E_OK) {
+        SoAd_SoGrpIdType id_grp;
+        res = SoAd_SoGrp_Lookup(&id_grp, socket_id);
+        if (res == E_OK) {
+            res = SoAd_SoCon_Lookup_FreeSocket(&id_con, id_grp, remote);
+        }
     }
 
     if (res == E_OK) {
@@ -393,13 +400,7 @@ void SoAd_RxIndication(
 
         res = SoAd_GetSocketRoute(id_con, 0u, &route);
         if (res == E_OK) {
-            PduInfoType                 info;
-            info.SduDataPtr = buf;
-            info.SduLength  = len;
-            res = SoAd_RxIndication_Pdu(route, &info);
-            if (res == E_OK) {
-                (void)TcpIp_TcpReceived(socket_id, info.SduLength);
-            }
+            res = SoAd_RxIndication_Route(id_con, route, buf, len);
         }
 
         if (res != E_OK) {
