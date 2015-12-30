@@ -66,19 +66,19 @@ const SoAd_SoConConfigType           socket_group_1_conn_1 = {
 };
 
 const SoAd_SoConConfigType           socket_group_1_conn_2 = {
-    .group = 0u,
+    .group  = 0u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
     .socket_route  = &socket_route_1,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_1 = {
-    .group = 1u,
+    .group  = 1u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
     .socket_route  = &socket_route_1,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_2 = {
-    .group = 1u,
+    .group  = 1u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
     .socket_route  = &socket_route_1,
 };
