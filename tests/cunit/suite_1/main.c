@@ -57,7 +57,21 @@ const SoAd_SoGrpConfigType           socket_group_2 = {
     .initiate  = FALSE,
 };
 
-const SoAd_SocketRouteType           socket_route_1;
+const SoAd_SocketRouteType           socket_route_1 = {
+        .header_id = 0u,
+        .destination = {
+                .upper_type = SOAD_UPPER_LAYER_TP,
+                .pdu        = 0u
+        }
+};
+
+const SoAd_SocketRouteType           socket_route_2 = {
+        .header_id = 0u,
+        .destination = {
+                .upper_type = SOAD_UPPER_LAYER_IF,
+                .pdu        = 1u
+        }
+};
 
 const SoAd_SoConConfigType           socket_group_1_conn_1 = {
     .group  = 0u,
@@ -74,13 +88,13 @@ const SoAd_SoConConfigType           socket_group_1_conn_2 = {
 const SoAd_SoConConfigType           socket_group_2_conn_1 = {
     .group  = 1u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route  = &socket_route_1,
+    .socket_route  = &socket_route_2,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_2 = {
     .group  = 1u,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route  = &socket_route_1,
+    .socket_route  = &socket_route_2,
 };
 
 const SoAd_PduRouteType              pdu_route_1;
