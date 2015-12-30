@@ -309,7 +309,7 @@ static Std_ReturnType SoAd_RxIndication_Route(
             res = E_NOT_OK;
             break;
         default:
-            res = E_OK;
+            res = E_NOT_OK;
             break;
     }
     return res;
