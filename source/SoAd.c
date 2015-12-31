@@ -55,8 +55,8 @@ typedef struct {
     TcpIp_SocketIdType        socket_id;
 } SoAd_SoGrpStatusType;
 
-SoAd_SoConStatusType SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
-SoAd_SoGrpStatusType SoAd_SoGrpStatus[SOAD_CFG_CONNECTIONGROUP_COUNT];
+SoAd_SoConStatusType       SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
+SoAd_SoGrpStatusType       SoAd_SoGrpStatus[SOAD_CFG_CONNECTIONGROUP_COUNT];
 
 static const uint32 SoAd_Ip6Any[] = {
         TCPIP_IP6ADDR_ANY,
@@ -760,7 +760,7 @@ void SoAd_SoCon_State_Offline(SoAd_SoConIdType id)
 
 static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state)
 {
-    SoAd_SoConStatusType* status = &SoAd_SoConStatus[id];
+    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
 
     switch(state) {
         case SOAD_SOCON_OFFLINE:
