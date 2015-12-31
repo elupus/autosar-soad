@@ -37,6 +37,15 @@ struct suite_state {
 
 struct suite_state suite_state;
 
+#define SOCKET_GRP1      0
+#define SOCKET_GRP2      1
+
+#define SOCKET_GRP1_CON1 0
+#define SOCKET_GRP1_CON2 1
+#define SOCKET_GRP2_CON1 2
+#define SOCKET_GRP2_CON2 3
+
+
 const TcpIp_SockAddrInetType socket_remote_any_v4 = {
     .domain  = TCPIP_AF_INET,
     .addr[0] = TCPIP_IPADDR_ANY,
@@ -74,38 +83,30 @@ const SoAd_SocketRouteType           socket_route_2 = {
 };
 
 const SoAd_SoConConfigType           socket_group_1_conn_1 = {
-    .group  = 0u,
+    .group  = SOCKET_GRP1,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
     .socket_route  = &socket_route_1,
 };
 
 const SoAd_SoConConfigType           socket_group_1_conn_2 = {
-    .group  = 0u,
+    .group  = SOCKET_GRP1,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
     .socket_route  = &socket_route_1,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_1 = {
-    .group  = 1u,
+    .group  = SOCKET_GRP2,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
     .socket_route  = &socket_route_2,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_2 = {
-    .group  = 1u,
+    .group  = SOCKET_GRP2,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
     .socket_route  = &socket_route_2,
 };
 
 const SoAd_PduRouteType              pdu_route_1;
-
-#define SOCKET_GRP1      0
-#define SOCKET_GRP2      1
-
-#define SOCKET_GRP1_CON1 0
-#define SOCKET_GRP1_CON2 1
-#define SOCKET_GRP2_CON1 2
-#define SOCKET_GRP2_CON2 3
 
 const SoAd_ConfigType config = {
     .groups = {
