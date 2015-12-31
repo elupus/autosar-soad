@@ -42,6 +42,17 @@ extern BufReq_ReturnType PduR_SoAdTpStartOfReception(
         PduLengthType*          buf_len
     );
 
+extern BufReq_ReturnType PduR_SoAdTpCopyRxData(
+        PduIdType               id,
+        const PduInfoType*      info,
+        PduLengthType*          len
+    );
+
+void PduR_SoAdTpRxIndication(
+        PduIdType               id,
+        Std_ReturnType          result
+    );
+
 extern BufReq_ReturnType PduR_SoAdTpCopyTxData(
         PduIdType               id,
         const PduInfoType*      info,
