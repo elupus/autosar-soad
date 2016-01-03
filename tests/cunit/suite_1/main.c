@@ -60,7 +60,7 @@ const SoAd_SoGrpConfigType           socket_group_1 = {
     .protocol  = TCPIP_IPPROTO_TCP,
     .automatic = TRUE,
     .initiate  = FALSE,
-    .socket_route_id = SOAD_CFG_SOCKETROUTE_COUNT
+    .socket_route_id = SOAD_SOCKETROUTEID_INVALID
 };
 
 const SoAd_SoGrpConfigType           socket_group_2 = {
@@ -68,7 +68,7 @@ const SoAd_SoGrpConfigType           socket_group_2 = {
     .protocol  = TCPIP_IPPROTO_UDP,
     .automatic = TRUE,
     .initiate  = FALSE,
-    .socket_route_id = SOAD_CFG_SOCKETROUTE_COUNT
+    .socket_route_id = SOAD_SOCKETROUTEID_INVALID
 };
 
 const SoAd_SocketRouteType           socket_route_1 = {

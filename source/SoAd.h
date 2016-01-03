@@ -99,6 +99,8 @@ typedef uint8 SoAd_SoConIdType;
 typedef uint8 SoAd_SoGrpIdType;
 typedef uint8 SoAd_SocketRouteIdType;
 
+#define SOAD_SOCKETROUTEID_INVALID (SoAd_SocketRouteIdType)(-1)
+
 typedef enum {
     SOAD_UPPER_LAYER_IF,
     SOAD_UPPER_LAYER_TP,
