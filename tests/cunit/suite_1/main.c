@@ -27,12 +27,18 @@ struct suite_socket_state {
     boolean connect;
 };
 
+struct suite_rxpdu_state {
+    boolean rx_tp_active;
+    uint32  rx_tp_count;
+    uint32  rx_if_count;
+};
 
 struct suite_state {
     TcpIp_SocketIdType socket_id;
     uint16             port_index;
 
     struct suite_socket_state sockets[100];
+    struct suite_rxpdu_state  rxpdu[100];
 };
 
 struct suite_state suite_state;
@@ -234,10 +240,11 @@ Std_ReturnType TcpIp_Close(
 }
 
 void PduR_SoAdIfRxIndication(
-            PduIdType           pdu,
+            PduIdType           id,
             const PduInfoType*  info
     )
 {
+    suite_state.rxpdu[id].rx_if_count += info->SduLength;
 }
 
 BufReq_ReturnType PduR_SoAdTpStartOfReception(
@@ -247,7 +254,9 @@ BufReq_ReturnType PduR_SoAdTpStartOfReception(
         PduLengthType*          buf_len
     )
 {
-    return E_NOT_OK;
+    suite_state.rxpdu[id].rx_tp_active = TRUE;
+    suite_state.rxpdu[id].rx_tp_count += info->SduLength;
+    return E_OK;
 }
 
 BufReq_ReturnType PduR_SoAdTpCopyRxData(
@@ -256,7 +265,8 @@ BufReq_ReturnType PduR_SoAdTpCopyRxData(
         PduLengthType*          len
     )
 {
-    return E_NOT_OK;
+    suite_state.rxpdu[id].rx_tp_count += info->SduLength;
+    return E_OK;
 }
 
 void PduR_SoAdTpRxIndication(
@@ -264,6 +274,7 @@ void PduR_SoAdTpRxIndication(
         Std_ReturnType          result
     )
 {
+    suite_state.rxpdu[id].rx_tp_active  = FALSE;
 }
 
 int suite_init(void)
@@ -271,6 +282,7 @@ int suite_init(void)
     suite_state.socket_id  = 1u;
     suite_state.port_index = 1024u;
     memset(suite_state.sockets, 0, sizeof(suite_state.sockets));
+    memset(suite_state.rxpdu  , 0, sizeof(suite_state.rxpdu));
 
     SoAd_Init(&config);
     return 0;
@@ -413,36 +425,67 @@ void main_test_mainfunction_accept_2(void)
     main_test_mainfunction_accept(SOCKET_GRP1, SOCKET_GRP1_CON2);
 }
 
-void main_test_mainfunction_receive_udp_online(SoAd_SoGrpIdType id_grp, SoAd_SoConIdType id_con)
+void main_test_mainfunction_receive(SoAd_SoConIdType id_grp, SoAd_SoConIdType id_con)
 {
     TcpIp_SockAddrInetType inet;
+    uint8                  data[100];
+    uint32                 prev;
+    const SoAd_SocketRouteType*  route;
+    TcpIp_SocketIdType     socket_id;
+
     inet.domain  = TCPIP_AF_INET;
     inet.addr[0] = 1;
     inet.port    = id_con;
 
-    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[id_con].state
-                           , SOAD_SOCON_RECONNECT);
+    route = config.socket_routes[config.connections[id_con]->socket_route_id];
+    if (route->destination.upper_type == SOAD_UPPER_LAYER_IF) {
+        prev  = suite_state.rxpdu[route->destination.pdu].rx_if_count;
+    } else {
+        prev  = suite_state.rxpdu[route->destination.pdu].rx_tp_count;
+    }
 
+    socket_id = SoAd_SoConStatus[id_con].socket_id;
+    if (socket_id == TCPIP_SOCKETID_INVALID) {
+        socket_id = SoAd_SoGrpStatus[id_grp].socket_id;
+    }
 
-    SoAd_RxIndication(SoAd_SoGrpStatus[id_grp].socket_id
+    SoAd_RxIndication(socket_id
                     , (TcpIp_SockAddrType*)&inet
-                    , NULL
-                    , 0);
+                    , data
+                    , sizeof(data));
 
-    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[id_con].state
-                           , SOAD_SOCON_ONLINE);
-
+    if (route->destination.upper_type == SOAD_UPPER_LAYER_IF) {
+        CU_ASSERT_EQUAL(suite_state.rxpdu[route->destination.pdu].rx_if_count, prev+sizeof(data));
+    } else {
+        CU_ASSERT_EQUAL(suite_state.rxpdu[route->destination.pdu].rx_tp_count, prev+sizeof(data));
+    }
 }
 
 void main_test_mainfunction_receive_udp_1()
 {
-    main_test_mainfunction_receive_udp_online(SOCKET_GRP2, SOCKET_GRP2_CON1);
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].state, SOAD_SOCON_RECONNECT);
+    main_test_mainfunction_receive(SOCKET_GRP2, SOCKET_GRP2_CON1);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].state, SOAD_SOCON_ONLINE);
 }
 
 void main_test_mainfunction_receive_udp_2()
 {
-    main_test_mainfunction_receive_udp_online(SOCKET_GRP2, SOCKET_GRP2_CON2);
+    CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP2_CON2].state, SOAD_SOCON_RECONNECT);
+    main_test_mainfunction_receive(SOCKET_GRP2, SOCKET_GRP2_CON2);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP2_CON2].state, SOAD_SOCON_ONLINE);
 }
+
+
+void main_test_mainfunction_receive_tcp_1()
+{
+    main_test_mainfunction_receive(SOCKET_GRP1, SOCKET_GRP1_CON1);
+}
+
+void main_test_mainfunction_receive_tcp_2()
+{
+    main_test_mainfunction_receive(SOCKET_GRP1, SOCKET_GRP1_CON2);
+}
+
 
 void main_add_mainfunction_suite(CU_pSuite suite)
 {
@@ -451,6 +494,8 @@ void main_add_mainfunction_suite(CU_pSuite suite)
     CU_add_test(suite, "accept_2"          , main_test_mainfunction_accept_2);
     CU_add_test(suite, "receive_udp_1"     , main_test_mainfunction_receive_udp_1);
     CU_add_test(suite, "receive_udp_2"     , main_test_mainfunction_receive_udp_2);
+    CU_add_test(suite, "receive_tcp_1"     , main_test_mainfunction_receive_tcp_1);
+    CU_add_test(suite, "receive_tcp_2"     , main_test_mainfunction_receive_tcp_2);
 }
 
 int main(void)
