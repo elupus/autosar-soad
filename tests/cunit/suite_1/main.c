@@ -45,6 +45,9 @@ struct suite_state suite_state;
 #define SOCKET_GRP2_CON1 2
 #define SOCKET_GRP2_CON2 3
 
+#define SOCKET_ROUTE1    0
+#define SOCKET_ROUTE2    1
+
 
 const TcpIp_SockAddrInetType socket_remote_any_v4 = {
     .domain  = TCPIP_AF_INET,
@@ -57,6 +60,7 @@ const SoAd_SoGrpConfigType           socket_group_1 = {
     .protocol  = TCPIP_IPPROTO_TCP,
     .automatic = TRUE,
     .initiate  = FALSE,
+    .socket_route_id = SOAD_CFG_SOCKETROUTE_COUNT
 };
 
 const SoAd_SoGrpConfigType           socket_group_2 = {
@@ -64,6 +68,7 @@ const SoAd_SoGrpConfigType           socket_group_2 = {
     .protocol  = TCPIP_IPPROTO_UDP,
     .automatic = TRUE,
     .initiate  = FALSE,
+    .socket_route_id = SOAD_CFG_SOCKETROUTE_COUNT
 };
 
 const SoAd_SocketRouteType           socket_route_1 = {
@@ -85,25 +90,25 @@ const SoAd_SocketRouteType           socket_route_2 = {
 const SoAd_SoConConfigType           socket_group_1_conn_1 = {
     .group  = SOCKET_GRP1,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route  = &socket_route_1,
+    .socket_route_id  = SOCKET_ROUTE1,
 };
 
 const SoAd_SoConConfigType           socket_group_1_conn_2 = {
     .group  = SOCKET_GRP1,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route  = &socket_route_1,
+    .socket_route_id  = SOCKET_ROUTE1,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_1 = {
     .group  = SOCKET_GRP2,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route  = &socket_route_2,
+    .socket_route_id  = SOCKET_ROUTE2,
 };
 
 const SoAd_SoConConfigType           socket_group_2_conn_2 = {
     .group  = SOCKET_GRP2,
     .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route  = &socket_route_2,
+    .socket_route_id  = SOCKET_ROUTE2,
 };
 
 const SoAd_PduRouteType              pdu_route_1;
@@ -122,7 +127,8 @@ const SoAd_ConfigType config = {
     },
 
     .socket_routes     = {
-        &socket_route_1,
+        [SOCKET_ROUTE1] = &socket_route_1,
+        [SOCKET_ROUTE2] = &socket_route_2,
     },
 
     .pdu_routes        = {

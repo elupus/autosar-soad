@@ -97,6 +97,7 @@ typedef enum {
 
 typedef uint8 SoAd_SoConIdType;
 typedef uint8 SoAd_SoGrpIdType;
+typedef uint8 SoAd_SocketRouteIdType;
 
 typedef enum {
     SOAD_UPPER_LAYER_IF,
@@ -120,13 +121,13 @@ typedef struct {
     boolean                           automatic;          /**< SoAdSocketAutomaticSoConSetup */
     boolean                           initiate;           /**< SoAdSocketTcpInitiate */
     boolean                           listen_only;        /**< SoAdSocketUdpListenOnly */
-    const SoAd_SocketRouteType*       socket_route;
+    SoAd_SocketRouteIdType            socket_route_id;
 } SoAd_SoGrpConfigType;
 
 typedef struct {
     SoAd_SoGrpIdType             group;
     const TcpIp_SockAddrType*    remote;
-    const SoAd_SocketRouteType*  socket_route;
+    SoAd_SocketRouteIdType       socket_route_id;
 } SoAd_SoConConfigType;
 
 typedef struct {

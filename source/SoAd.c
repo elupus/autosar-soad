@@ -265,18 +265,18 @@ void SoAd_Init(const SoAd_ConfigType* config)
     }
 }
 
-static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header_id, const SoAd_SocketRouteType** route)
+static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header_id, SoAd_SocketRouteIdType* route_id)
 {
     Std_ReturnType              res;
     const SoAd_SoConConfigType* con_config = SoAd_Config->connections[con_id];
     const SoAd_SoGrpConfigType* grp_config = SoAd_Config->groups[con_config->group];
 
     /* TODO - there can be multiple routes mapped to each connection */
-    if (con_config->socket_route) {
-        *route = con_config->socket_route;
+    if (con_config->socket_route_id < SOAD_CFG_SOCKETROUTE_COUNT) {
+        *route_id = con_config->socket_route_id;
         res = E_OK;
-    } else if (grp_config->socket_route) {
-        *route = con_config->socket_route;
+    } else if (grp_config->socket_route_id < SOAD_CFG_SOCKETROUTE_COUNT) {
+        *route_id = grp_config->socket_route_id;
         res = E_OK;
     } else {
         res = E_NOT_OK;
@@ -285,20 +285,21 @@ static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header
 }
 
 static Std_ReturnType SoAd_RxIndication_Route(
+        SoAd_SocketRouteIdType route_id,
         SoAd_SoConIdType            id_con,
-        const SoAd_SocketRouteType* route,
         uint8*                      buf,
         uint16                      len
    )
 {
     Std_ReturnType res;
-    switch (route->destination.upper_type) {
+    const SoAd_SocketRouteType* route_config = SoAd_Config->socket_routes[route_id];
+    switch (route_config->destination.upper_type) {
         case SOAD_UPPER_LAYER_IF: {
             PduInfoType info;
             info.SduDataPtr = buf;
             info.SduLength  = len;
 
-            PduR_SoAdIfRxIndication(route->destination.pdu
+            PduR_SoAdIfRxIndication(route_config->destination.pdu
                                   , &info);
             res = E_OK;
             break;
@@ -391,16 +392,16 @@ void SoAd_RxIndication(
     }
 
     if (res == E_OK) {
-        const SoAd_SocketRouteType* route;
+        SoAd_SocketRouteIdType      route_id;
         TcpIp_SockAddrStorageType   revert_remote;
         SoAd_SoConStateType         revert_state;
         SoAd_RxIndication_RemoteOnline(id_con, remote, &revert_remote, &revert_state);
 
         /* TODO - header id handling */
 
-        res = SoAd_GetSocketRoute(id_con, 0u, &route);
+        res = SoAd_GetSocketRoute(id_con, 0u, &route_id);
         if (res == E_OK) {
-            res = SoAd_RxIndication_Route(id_con, route, buf, len);
+            res = SoAd_RxIndication_Route(route_id, buf, len);
         }
 
         if (res != E_OK) {
