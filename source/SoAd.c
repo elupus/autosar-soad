@@ -55,8 +55,13 @@ typedef struct {
     TcpIp_SocketIdType        socket_id;
 } SoAd_SoGrpStatusType;
 
+typedef struct {
+    boolean                   transport_active;
+} SoAd_SocketRouteStatusType;
+
 SoAd_SoConStatusType       SoAd_SoConStatus[SOAD_CFG_CONNECTION_COUNT];
 SoAd_SoGrpStatusType       SoAd_SoGrpStatus[SOAD_CFG_CONNECTIONGROUP_COUNT];
+SoAd_SocketRouteStatusType SoAd_SocketRouteStatus[SOAD_CFG_SOCKETROUTE_COUNT];
 
 static const uint32 SoAd_Ip6Any[] = {
         TCPIP_IP6ADDR_ANY,
@@ -286,29 +291,43 @@ static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header
 
 static Std_ReturnType SoAd_RxIndication_Route(
         SoAd_SocketRouteIdType route_id,
-        SoAd_SoConIdType            id_con,
-        uint8*                      buf,
-        uint16                      len
+        uint8*                 buf,
+        PduLengthType          len
    )
 {
     Std_ReturnType res;
+    PduInfoType    info;
     const SoAd_SocketRouteType* route_config = SoAd_Config->socket_routes[route_id];
+    SoAd_SocketRouteStatusType* route_status = &SoAd_SocketRouteStatus[route_id];
+
+    info.SduDataPtr = buf;
+    info.SduLength  = len;
+
     switch (route_config->destination.upper_type) {
         case SOAD_UPPER_LAYER_IF: {
-            PduInfoType info;
-            info.SduDataPtr = buf;
-            info.SduLength  = len;
 
             PduR_SoAdIfRxIndication(route_config->destination.pdu
                                   , &info);
             res = E_OK;
             break;
         }
-        case SOAD_UPPER_LAYER_TP:
-
-            /* TODO */
-            res = E_NOT_OK;
+        case SOAD_UPPER_LAYER_TP: {
+            BufReq_ReturnType buf_ret;
+            PduLengthType     buf_len;
+            if (route_status->transport_active) {
+                buf_ret = PduR_SoAdTpCopyRxData(route_config->destination.pdu
+                                              , &info
+                                              , &buf_len);
+            } else {
+                buf_ret = E_NOT_OK;
+            }
+            if (buf_ret == BUFREQ_OK) {
+                res = E_OK;
+            } else {
+                res = E_NOT_OK;
+            }
             break;
+        }
         default:
             res = E_NOT_OK;
             break;
@@ -399,7 +418,7 @@ void SoAd_RxIndication(
 
         /* TODO - header id handling */
 
-        res = SoAd_GetSocketRoute(id_con, 0u, &route_id);
+        res = SoAd_GetSocketRoute(id_con, SOAD_SOCKETROUTEID_INVALID, &route_id);
         if (res == E_OK) {
             res = SoAd_RxIndication_Route(route_id, buf, len);
         }
@@ -631,16 +650,34 @@ Std_ReturnType SoAd_IfTransmit(
     return res;
 }
 
+/**
+ * @brief SWS_SoAd_00642-TODO
+ */
+void SoAd_SoCon_PerformClose(SoAd_SoConIdType id)
+{
+    const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
+    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
+
+}
+
 void SoAd_SoCon_State_Online(SoAd_SoConIdType id)
 {
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
-
+    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
+    if (status->request_close) {
+        SoAd_SoCon_PerformClose(id);
+        status->request_close = FALSE;
+    }
 }
 
 void SoAd_SoCon_State_Reconnect(SoAd_SoConIdType id)
 {
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
-
+    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
+    if (status->request_close) {
+        SoAd_SoCon_PerformClose(id);
+        status->request_close = FALSE;
+    }
 }
 
 /**
@@ -759,22 +796,79 @@ void SoAd_SoCon_State_Offline(SoAd_SoConIdType id)
     }
 }
 
+static void SoAd_SoCon_EnterState_SocketRoute(SoAd_SocketRouteIdType route_id, SoAd_SoConStateType state, boolean header)
+{
+    const SoAd_SocketRouteType* route_config;
+    SoAd_SocketRouteStatusType* route_status;
+
+     route_config = SoAd_Config->socket_routes[route_id];
+     route_status = &SoAd_SocketRouteStatus[route_id];
+     switch(state) {
+         case SOAD_SOCON_RECONNECT:
+         case SOAD_SOCON_OFFLINE:
+
+             /**
+              * @req SWS_SoAd_00641-TODO
+              *
+              * Was this due to a close request?
+              */
+             if (route_config->destination.upper_type == SOAD_UPPER_LAYER_TP) {
+                 if (route_status->transport_active) {
+                     PduR_SoAdTpRxIndication(route_config->destination.pdu
+                                            , E_OK);
+                     route_status->transport_active = FALSE;
+                 }
+             }
+             break;
+
+         case SOAD_SOCON_ONLINE:
+
+             if (route_config->destination.upper_type == SOAD_UPPER_LAYER_TP
+             && header == FALSE) {
+                 PduLengthType len  = 0u;
+                 PduInfoType   info = {0u};
+
+                 /** @req SWS_SoAd_00595 **/
+                 if (PduR_SoAdTpStartOfReception(route_config->destination.pdu
+                                                , &info
+                                                , len
+                                                , &len) == BUFREQ_OK) {
+                     route_status->transport_active = TRUE;
+                 }
+             }
+             break;
+
+         default:
+             break;
+     }
+}
+
 static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state)
 {
-    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
+    const SoAd_SoConConfigType* con_config = SoAd_Config->connections[id];
+    const SoAd_SoGrpConfigType* grp_config = SoAd_Config->groups[con_config->group];
+    SoAd_SoConStatusType*       con_status = &SoAd_SoConStatus[id];
+    SoAd_SocketRouteIdType      route_id;
 
+    /* update connection state */
     switch(state) {
-        case SOAD_SOCON_OFFLINE:
-            status->socket_id = TCPIP_SOCKETID_INVALID;
-            break;
         case SOAD_SOCON_RECONNECT:
+        case SOAD_SOCON_OFFLINE:
+            con_status->socket_id = TCPIP_SOCKETID_INVALID;
             break;
-        case SOAD_SOCON_ONLINE:
+        case SOAD_SOCON_ONLINE: {
             break;
+        }
         default:
             break;
     }
-    status->state = state;
+
+    /* update all route states */
+    if (SoAd_GetSocketRoute(id, SOAD_SOCKETROUTEID_INVALID, &route_id) == E_OK) {
+        SoAd_SoCon_EnterState_SocketRoute(route_id, state, grp_config->header);
+    }
+
+    con_status->state = state;
 }
 
 void SoAd_SoCon_MainFunction(SoAd_SoConIdType id)

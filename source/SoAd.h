@@ -100,6 +100,8 @@ typedef uint8 SoAd_SoGrpIdType;
 typedef uint8 SoAd_SocketRouteIdType;
 
 #define SOAD_SOCKETROUTEID_INVALID (SoAd_SocketRouteIdType)(-1)
+#define SOAD_PDUHEADERID_INVALID   (uint32)(-1)
+
 
 typedef enum {
     SOAD_UPPER_LAYER_IF,
@@ -123,6 +125,7 @@ typedef struct {
     boolean                           automatic;          /**< SoAdSocketAutomaticSoConSetup */
     boolean                           initiate;           /**< SoAdSocketTcpInitiate */
     boolean                           listen_only;        /**< SoAdSocketUdpListenOnly */
+    boolean                           header;             /**< SoAdPduHeaderEnable */
     SoAd_SocketRouteIdType            socket_route_id;
 } SoAd_SoGrpConfigType;
 

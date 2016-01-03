@@ -72,7 +72,7 @@ const SoAd_SoGrpConfigType           socket_group_2 = {
 };
 
 const SoAd_SocketRouteType           socket_route_1 = {
-        .header_id = 0u,
+        .header_id = SOAD_PDUHEADERID_INVALID,
         .destination = {
                 .upper_type = SOAD_UPPER_LAYER_TP,
                 .pdu        = 0u
@@ -80,7 +80,7 @@ const SoAd_SocketRouteType           socket_route_1 = {
 };
 
 const SoAd_SocketRouteType           socket_route_2 = {
-        .header_id = 0u,
+        .header_id = SOAD_PDUHEADERID_INVALID,
         .destination = {
                 .upper_type = SOAD_UPPER_LAYER_IF,
                 .pdu        = 1u
@@ -238,7 +238,32 @@ void PduR_SoAdIfRxIndication(
             const PduInfoType*  info
     )
 {
+}
 
+BufReq_ReturnType PduR_SoAdTpStartOfReception(
+        PduIdType               id,
+        const PduInfoType*      info,
+        PduLengthType           len,
+        PduLengthType*          buf_len
+    )
+{
+    return E_NOT_OK;
+}
+
+BufReq_ReturnType PduR_SoAdTpCopyRxData(
+        PduIdType               id,
+        const PduInfoType*      info,
+        PduLengthType*          len
+    )
+{
+    return E_NOT_OK;
+}
+
+void PduR_SoAdTpRxIndication(
+        PduIdType               id,
+        Std_ReturnType          result
+    )
+{
 }
 
 int suite_init(void)
