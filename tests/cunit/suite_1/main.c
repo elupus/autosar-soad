@@ -184,10 +184,7 @@ static BufReq_ReturnType PduR_SoAdIfStartOfReception(
         PduLengthType*          buf_len
     )
 {
-    if (info->SduLength) {
-        PduR_SoAdIfRxIndication(id, info);
-    }
-    *buf_len = 0u;
+    *buf_len = len;
     return BUFREQ_OK;
 }
 
