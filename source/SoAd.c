@@ -49,6 +49,7 @@ typedef struct {
     SoAd_SoConStateType       state;
     boolean                   request_open;
     boolean                   request_close;
+    boolean                   request_abort;
 } SoAd_SoConStatusType;
 
 typedef struct {
@@ -658,6 +659,9 @@ void SoAd_SoCon_PerformClose(SoAd_SoConIdType id)
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
     SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
 
+    if (status->socket_id != TCPIP_SOCKETID_INVALID) {
+        TcpIp_Close(status->socket_id, status->request_abort);
+    }
 }
 
 void SoAd_SoCon_State_Online(SoAd_SoConIdType id)
