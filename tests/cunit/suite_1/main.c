@@ -156,16 +156,18 @@ BufReq_ReturnType PduR_SoAdTpStartOfReception(
 {
     suite_state.rxpdu[id].rx_tp_active = TRUE;
     suite_state.rxpdu[id].rx_count += info->SduLength;
+    *buf_len = (PduLengthType)0xffffu;
     return E_OK;
 }
 
 BufReq_ReturnType PduR_SoAdTpCopyRxData(
         PduIdType               id,
         const PduInfoType*      info,
-        PduLengthType*          len
+        PduLengthType*          buf_len
     )
 {
     suite_state.rxpdu[id].rx_count += info->SduLength;
+    *buf_len = (PduLengthType)0xffffu;
     return E_OK;
 }
 
@@ -184,7 +186,7 @@ static BufReq_ReturnType PduR_SoAdIfStartOfReception(
         PduLengthType*          buf_len
     )
 {
-    *buf_len = len;
+    *buf_len = (PduLengthType)0xffffu;
     return BUFREQ_OK;
 }
 
@@ -197,7 +199,7 @@ static BufReq_ReturnType PduR_SoAdIfCopyRxData(
     if (info->SduLength) {
         PduR_SoAdIfRxIndication(id, info);
     }
-    *buf_len = 0u;
+    *buf_len = (PduLengthType)0xffffu;
     return BUFREQ_OK;
 }
 
