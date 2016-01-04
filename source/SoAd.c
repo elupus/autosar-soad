@@ -334,7 +334,6 @@ Std_ReturnType SoAd_RxIndication_SoCon(
     )
 {
     PduInfoType                 info;
-    Std_ReturnType              res;
     const SoAd_SoConStatusType* con_sts = &SoAd_SoConStatus[con_id];
 
     /* TODO - header id handling */
@@ -349,34 +348,29 @@ Std_ReturnType SoAd_RxIndication_SoCon(
         if (con_sts->socket_route->destination.upper->copy_rx_data(
                 con_sts->socket_route->destination.pdu
               , &info
-              , &buf_len) == BUFREQ_OK) {
-
-            info.SduDataPtr = buf;
-            if (buf_len < len) {
-                info.SduLength = buf_len;
-            } else {
-                info.SduLength = len;
-            }
-
-            if (con_sts->socket_route->destination.upper->copy_rx_data(
-                    con_sts->socket_route->destination.pdu
-                  , &info
-                  , &buf_len) == BUFREQ_OK) {
-
-                buf += info.SduLength;
-                len -= info.SduLength;
-            }
+              , &buf_len) != BUFREQ_OK) {
+            return E_NOT_OK;
         }
+
+        /* TODO check for internal buffer */
+        if (buf_len < len) {
+            return E_NOT_OK;
+        }
+
+
+        info.SduLength = len;
+        info.SduDataPtr = buf;
+
+        if (con_sts->socket_route->destination.upper->copy_rx_data(
+                con_sts->socket_route->destination.pdu
+              , &info
+              , &buf_len) != BUFREQ_OK) {
+            return E_NOT_OK;
+        }
+
     }
 
-    /* if everything was consumed, we are okey */
-    if (len == 0u) {
-        res = E_OK;
-    } else {
-        res = E_NOT_OK;
-    }
-
-    return res;
+    return E_OK;
 }
 
 void SoAd_RxIndication(
