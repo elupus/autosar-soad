@@ -311,9 +311,8 @@ static Std_ReturnType SoAd_RxIndication_Route(
                           route_config->destination.pdu
                         , &info
                         , &buf_len);
-    } else {
-        buf_ret = E_NOT_OK;
     }
+
     if (buf_ret == BUFREQ_OK) {
         res = E_OK;
     } else {
@@ -363,6 +362,25 @@ static void SoAd_RxIndication_RemoteRevert(SoAd_SoConIdType con_id, const TcpIp_
     }
 }
 
+Std_ReturnType SoAd_RxIndication_SoCon(
+        SoAd_SoConIdType            id_con,
+        uint8*                      buf,
+        uint16                      len
+    )
+{
+    Std_ReturnType              res;
+    SoAd_SocketRouteIdType      route_id;
+
+    /* TODO - header id handling */
+
+    res = SoAd_GetSocketRoute(id_con, SOAD_SOCKETROUTEID_INVALID, &route_id);
+    if (res == E_OK) {
+        res = SoAd_RxIndication_Route(route_id, buf, len);
+    }
+
+    return res;
+}
+
 void SoAd_RxIndication(
         TcpIp_SocketIdType          socket_id,
         const TcpIp_SockAddrType*   remote,
@@ -399,22 +417,15 @@ void SoAd_RxIndication(
     }
 
     if (res == E_OK) {
-        SoAd_SocketRouteIdType      route_id;
         TcpIp_SockAddrStorageType   revert_remote;
         SoAd_SoConStateType         revert_state;
         SoAd_RxIndication_RemoteOnline(id_con, remote, &revert_remote, &revert_state);
 
-        /* TODO - header id handling */
-
-        res = SoAd_GetSocketRoute(id_con, SOAD_SOCKETROUTEID_INVALID, &route_id);
-        if (res == E_OK) {
-            res = SoAd_RxIndication_Route(route_id, buf, len);
-        }
+        res = SoAd_RxIndication_SoCon(id_con, buf, len);
 
         if (res != E_OK) {
             SoAd_RxIndication_RemoteRevert(id_con, &revert_remote, revert_state);
         }
-
     } else {
         /**
          * @req SWS_SoAd_00267
