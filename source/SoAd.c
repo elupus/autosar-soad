@@ -278,10 +278,10 @@ static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header
     const SoAd_SoGrpConfigType* grp_config = SoAd_Config->groups[con_config->group];
 
     /* TODO - there can be multiple routes mapped to each connection */
-    if (con_config->socket_route_id < SOAD_CFG_SOCKETROUTE_COUNT) {
+    if (con_config->socket_route_id != SOAD_SOCKETROUTEID_INVALID) {
         *route_id = con_config->socket_route_id;
         res = E_OK;
-    } else if (grp_config->socket_route_id < SOAD_CFG_SOCKETROUTE_COUNT) {
+    } else if (grp_config->socket_route_id < SOAD_SOCKETROUTEID_INVALID) {
         *route_id = grp_config->socket_route_id;
         res = E_OK;
     } else {
