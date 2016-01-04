@@ -29,8 +29,7 @@ struct suite_socket_state {
 
 struct suite_rxpdu_state {
     boolean rx_tp_active;
-    uint32  rx_tp_count;
-    uint32  rx_if_count;
+    uint32  rx_count;
 };
 
 struct suite_state {
@@ -42,105 +41,6 @@ struct suite_state {
 };
 
 struct suite_state suite_state;
-
-#define SOCKET_GRP1      0
-#define SOCKET_GRP2      1
-
-#define SOCKET_GRP1_CON1 0
-#define SOCKET_GRP1_CON2 1
-#define SOCKET_GRP2_CON1 2
-#define SOCKET_GRP2_CON2 3
-
-#define SOCKET_ROUTE1    0
-#define SOCKET_ROUTE2    1
-
-
-const TcpIp_SockAddrInetType socket_remote_any_v4 = {
-    .domain  = TCPIP_AF_INET,
-    .addr[0] = TCPIP_IPADDR_ANY,
-    .port    = TCPIP_PORT_ANY,
-};
-
-const SoAd_SoGrpConfigType           socket_group_1 = {
-    .localport = 8000,
-    .protocol  = TCPIP_IPPROTO_TCP,
-    .automatic = TRUE,
-    .initiate  = FALSE,
-    .socket_route_id = SOAD_SOCKETROUTEID_INVALID
-};
-
-const SoAd_SoGrpConfigType           socket_group_2 = {
-    .localport = 8001,
-    .protocol  = TCPIP_IPPROTO_UDP,
-    .automatic = TRUE,
-    .initiate  = FALSE,
-    .socket_route_id = SOAD_SOCKETROUTEID_INVALID
-};
-
-const SoAd_SocketRouteType           socket_route_1 = {
-        .header_id = SOAD_PDUHEADERID_INVALID,
-        .destination = {
-                .upper_type = SOAD_UPPER_LAYER_TP,
-                .pdu        = 0u
-        }
-};
-
-const SoAd_SocketRouteType           socket_route_2 = {
-        .header_id = SOAD_PDUHEADERID_INVALID,
-        .destination = {
-                .upper_type = SOAD_UPPER_LAYER_IF,
-                .pdu        = 1u
-        }
-};
-
-const SoAd_SoConConfigType           socket_group_1_conn_1 = {
-    .group  = SOCKET_GRP1,
-    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route_id  = SOCKET_ROUTE1,
-};
-
-const SoAd_SoConConfigType           socket_group_1_conn_2 = {
-    .group  = SOCKET_GRP1,
-    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route_id  = SOCKET_ROUTE1,
-};
-
-const SoAd_SoConConfigType           socket_group_2_conn_1 = {
-    .group  = SOCKET_GRP2,
-    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route_id  = SOCKET_ROUTE2,
-};
-
-const SoAd_SoConConfigType           socket_group_2_conn_2 = {
-    .group  = SOCKET_GRP2,
-    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
-    .socket_route_id  = SOCKET_ROUTE2,
-};
-
-const SoAd_PduRouteType              pdu_route_1;
-
-const SoAd_ConfigType config = {
-    .groups = {
-        [SOCKET_GRP1] = &socket_group_1,
-        [SOCKET_GRP2] = &socket_group_2,
-    },
-
-    .connections = {
-        [SOCKET_GRP1_CON1] = &socket_group_1_conn_1,
-        [SOCKET_GRP1_CON2] = &socket_group_1_conn_2,
-        [SOCKET_GRP2_CON1] = &socket_group_2_conn_1,
-        [SOCKET_GRP2_CON2] = &socket_group_2_conn_2,
-    },
-
-    .socket_routes     = {
-        [SOCKET_ROUTE1] = &socket_route_1,
-        [SOCKET_ROUTE2] = &socket_route_2,
-    },
-
-    .pdu_routes        = {
-        &pdu_route_1,
-    },
-};
 
 Std_ReturnType Det_ReportError(
         uint16 ModuleId,
@@ -244,7 +144,7 @@ void PduR_SoAdIfRxIndication(
             const PduInfoType*  info
     )
 {
-    suite_state.rxpdu[id].rx_if_count += info->SduLength;
+    suite_state.rxpdu[id].rx_count += info->SduLength;
 }
 
 BufReq_ReturnType PduR_SoAdTpStartOfReception(
@@ -255,7 +155,7 @@ BufReq_ReturnType PduR_SoAdTpStartOfReception(
     )
 {
     suite_state.rxpdu[id].rx_tp_active = TRUE;
-    suite_state.rxpdu[id].rx_tp_count += info->SduLength;
+    suite_state.rxpdu[id].rx_count += info->SduLength;
     return E_OK;
 }
 
@@ -265,7 +165,7 @@ BufReq_ReturnType PduR_SoAdTpCopyRxData(
         PduLengthType*          len
     )
 {
-    suite_state.rxpdu[id].rx_tp_count += info->SduLength;
+    suite_state.rxpdu[id].rx_count += info->SduLength;
     return E_OK;
 }
 
@@ -276,6 +176,151 @@ void PduR_SoAdTpRxIndication(
 {
     suite_state.rxpdu[id].rx_tp_active  = FALSE;
 }
+
+static BufReq_ReturnType PduR_SoAdIfStartOfReception(
+        PduIdType               id,
+        const PduInfoType*      info,
+        PduLengthType           len,
+        PduLengthType*          buf_len
+    )
+{
+    if (info->SduLength) {
+        PduR_SoAdIfRxIndication(id, info);
+    }
+    *buf_len = 0u;
+    return BUFREQ_OK;
+}
+
+static BufReq_ReturnType PduR_SoAdIfCopyRxData(
+        PduIdType               id,
+        const PduInfoType*      info,
+        PduLengthType*          buf_len
+    )
+{
+    if (info->SduLength) {
+        PduR_SoAdIfRxIndication(id, info);
+    }
+    *buf_len = 0u;
+    return BUFREQ_OK;
+}
+
+static void PduR_SoAdTpRxIndication_If(
+        PduIdType               id,
+        Std_ReturnType          result
+    )
+{
+}
+
+#define SOCKET_GRP1      0
+#define SOCKET_GRP2      1
+
+#define SOCKET_GRP1_CON1 0
+#define SOCKET_GRP1_CON2 1
+#define SOCKET_GRP2_CON1 2
+#define SOCKET_GRP2_CON2 3
+
+#define SOCKET_ROUTE1    0
+#define SOCKET_ROUTE2    1
+
+const SoAd_TpRxType suite_tp = {
+        .rx_indication      = PduR_SoAdTpRxIndication,
+        .copy_rx_data       = PduR_SoAdTpCopyRxData,
+        .start_of_reception = PduR_SoAdTpStartOfReception,
+};
+
+const SoAd_TpRxType suite_if = {
+        .rx_indication      = PduR_SoAdTpRxIndication_If,
+        .copy_rx_data       = PduR_SoAdIfCopyRxData,
+        .start_of_reception = PduR_SoAdIfStartOfReception,
+};
+
+const TcpIp_SockAddrInetType socket_remote_any_v4 = {
+    .domain  = TCPIP_AF_INET,
+    .addr[0] = TCPIP_IPADDR_ANY,
+    .port    = TCPIP_PORT_ANY,
+};
+
+const SoAd_SoGrpConfigType           socket_group_1 = {
+    .localport = 8000,
+    .protocol  = TCPIP_IPPROTO_TCP,
+    .automatic = TRUE,
+    .initiate  = FALSE,
+    .socket_route_id = SOAD_SOCKETROUTEID_INVALID
+};
+
+const SoAd_SoGrpConfigType           socket_group_2 = {
+    .localport = 8001,
+    .protocol  = TCPIP_IPPROTO_UDP,
+    .automatic = TRUE,
+    .initiate  = FALSE,
+    .socket_route_id = SOAD_SOCKETROUTEID_INVALID
+};
+
+const SoAd_SocketRouteType           socket_route_1 = {
+        .header_id = SOAD_PDUHEADERID_INVALID,
+        .destination = {
+                .upper      = &suite_tp,
+                .pdu        = 0u
+        }
+};
+
+const SoAd_SocketRouteType           socket_route_2 = {
+        .header_id = SOAD_PDUHEADERID_INVALID,
+        .destination = {
+                .upper      = &suite_if,
+                .pdu        = 1u
+        }
+};
+
+const SoAd_SoConConfigType           socket_group_1_conn_1 = {
+    .group  = SOCKET_GRP1,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route_id  = SOCKET_ROUTE1,
+};
+
+const SoAd_SoConConfigType           socket_group_1_conn_2 = {
+    .group  = SOCKET_GRP1,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route_id  = SOCKET_ROUTE1,
+};
+
+const SoAd_SoConConfigType           socket_group_2_conn_1 = {
+    .group  = SOCKET_GRP2,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route_id  = SOCKET_ROUTE2,
+};
+
+const SoAd_SoConConfigType           socket_group_2_conn_2 = {
+    .group  = SOCKET_GRP2,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_any_v4,
+    .socket_route_id  = SOCKET_ROUTE2,
+};
+
+const SoAd_PduRouteType              pdu_route_1;
+
+const SoAd_ConfigType config = {
+    .groups = {
+        [SOCKET_GRP1] = &socket_group_1,
+        [SOCKET_GRP2] = &socket_group_2,
+    },
+
+    .connections = {
+        [SOCKET_GRP1_CON1] = &socket_group_1_conn_1,
+        [SOCKET_GRP1_CON2] = &socket_group_1_conn_2,
+        [SOCKET_GRP2_CON1] = &socket_group_2_conn_1,
+        [SOCKET_GRP2_CON2] = &socket_group_2_conn_2,
+    },
+
+    .socket_routes     = {
+        [SOCKET_ROUTE1] = &socket_route_1,
+        [SOCKET_ROUTE2] = &socket_route_2,
+    },
+
+    .pdu_routes        = {
+        &pdu_route_1,
+    },
+};
+
 
 int suite_init(void)
 {
@@ -438,11 +483,7 @@ void main_test_mainfunction_receive(SoAd_SoConIdType id_grp, SoAd_SoConIdType id
     inet.port    = id_con;
 
     route = config.socket_routes[config.connections[id_con]->socket_route_id];
-    if (route->destination.upper_type == SOAD_UPPER_LAYER_IF) {
-        prev  = suite_state.rxpdu[route->destination.pdu].rx_if_count;
-    } else {
-        prev  = suite_state.rxpdu[route->destination.pdu].rx_tp_count;
-    }
+    prev  = suite_state.rxpdu[route->destination.pdu].rx_count;
 
     socket_id = SoAd_SoConStatus[id_con].socket_id;
     if (socket_id == TCPIP_SOCKETID_INVALID) {
@@ -454,11 +495,7 @@ void main_test_mainfunction_receive(SoAd_SoConIdType id_grp, SoAd_SoConIdType id
                     , data
                     , sizeof(data));
 
-    if (route->destination.upper_type == SOAD_UPPER_LAYER_IF) {
-        CU_ASSERT_EQUAL(suite_state.rxpdu[route->destination.pdu].rx_if_count, prev+sizeof(data));
-    } else {
-        CU_ASSERT_EQUAL(suite_state.rxpdu[route->destination.pdu].rx_tp_count, prev+sizeof(data));
-    }
+    CU_ASSERT_EQUAL(suite_state.rxpdu[route->destination.pdu].rx_count, prev+sizeof(data));
 }
 
 void main_test_mainfunction_receive_udp_1()

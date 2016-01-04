@@ -304,35 +304,22 @@ static Std_ReturnType SoAd_RxIndication_Route(
     info.SduDataPtr = buf;
     info.SduLength  = len;
 
-    switch (route_config->destination.upper_type) {
-        case SOAD_UPPER_LAYER_IF: {
-
-            PduR_SoAdIfRxIndication(route_config->destination.pdu
-                                  , &info);
-            res = E_OK;
-            break;
-        }
-        case SOAD_UPPER_LAYER_TP: {
-            BufReq_ReturnType buf_ret;
-            PduLengthType     buf_len;
-            if (route_status->transport_active) {
-                buf_ret = PduR_SoAdTpCopyRxData(route_config->destination.pdu
-                                              , &info
-                                              , &buf_len);
-            } else {
-                buf_ret = E_NOT_OK;
-            }
-            if (buf_ret == BUFREQ_OK) {
-                res = E_OK;
-            } else {
-                res = E_NOT_OK;
-            }
-            break;
-        }
-        default:
-            res = E_NOT_OK;
-            break;
+    BufReq_ReturnType buf_ret;
+    PduLengthType     buf_len;
+    if (route_status->transport_active) {
+        buf_ret = route_config->destination.upper->copy_rx_data(
+                          route_config->destination.pdu
+                        , &info
+                        , &buf_len);
+    } else {
+        buf_ret = E_NOT_OK;
     }
+    if (buf_ret == BUFREQ_OK) {
+        res = E_OK;
+    } else {
+        res = E_NOT_OK;
+    }
+
     return res;
 }
 
@@ -816,27 +803,26 @@ static void SoAd_SoCon_EnterState_SocketRoute(SoAd_SocketRouteIdType route_id, S
               *
               * Was this due to a close request?
               */
-             if (route_config->destination.upper_type == SOAD_UPPER_LAYER_TP) {
-                 if (route_status->transport_active) {
-                     PduR_SoAdTpRxIndication(route_config->destination.pdu
-                                            , E_OK);
-                     route_status->transport_active = FALSE;
-                 }
+             if (route_status->transport_active) {
+                 route_config->destination.upper->rx_indication(
+                           route_config->destination.pdu
+                         , E_OK);
+                 route_status->transport_active = FALSE;
              }
              break;
 
          case SOAD_SOCON_ONLINE:
 
-             if (route_config->destination.upper_type == SOAD_UPPER_LAYER_TP
-             && header == FALSE) {
+             if (header == FALSE) {
                  PduLengthType len  = 0u;
                  PduInfoType   info = {0u};
 
                  /** @req SWS_SoAd_00595 **/
-                 if (PduR_SoAdTpStartOfReception(route_config->destination.pdu
-                                                , &info
-                                                , len
-                                                , &len) == BUFREQ_OK) {
+                 if (route_config->destination.upper->start_of_reception(
+                           route_config->destination.pdu
+                         , &info
+                         , len
+                         , &len) == BUFREQ_OK) {
                      route_status->transport_active = TRUE;
                  }
              }

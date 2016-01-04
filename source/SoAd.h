@@ -108,8 +108,29 @@ typedef enum {
     SOAD_UPPER_LAYER_TP,
 } SoAd_UpperLayerType;
 
+
 typedef struct {
-    SoAd_UpperLayerType               upper_type;         /**< SoAdRxUpperLayerType */
+    BufReq_ReturnType (*start_of_reception)(
+        PduIdType               id,
+        const PduInfoType*      info,
+        PduLengthType           len,
+        PduLengthType*          buf_len
+    );
+
+    BufReq_ReturnType (*copy_rx_data)(
+        PduIdType               id,
+        const PduInfoType*      info,
+        PduLengthType*          len
+    );
+
+    void (*rx_indication)(
+        PduIdType               id,
+        Std_ReturnType          result
+    );
+} SoAd_TpRxType;
+
+typedef struct {
+    const SoAd_TpRxType*              upper;
     PduIdType                         pdu;                /**< SoAdRxPduRef */
 } SoAd_SocketRouteDestType;
 
