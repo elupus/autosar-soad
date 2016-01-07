@@ -15,6 +15,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * @file
+ * @ingroup SoAd
+ */
+
+/**
+ * @addgroup SoAd SoAd
+ *
+ * An implementation of the AUTOSAR SoAd module
+ */
 
 #include "Std_Types.h"
 #include "ComStack_Types.h"

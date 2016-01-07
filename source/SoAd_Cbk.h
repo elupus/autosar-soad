@@ -15,6 +15,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * @file
+ * @ingroup SoAd
+ */
+
 #ifndef SOAD_CBK_H_
 #define SOAD_CBK_H_
 
