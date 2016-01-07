@@ -625,27 +625,25 @@ Std_ReturnType SoAd_IfTransmit(
     group  = SoAd_Config->groups[config->group];
 
     if (status->state == SOAD_SOCON_ONLINE) {
-        res = E_OK;
+        switch(group->protocol) {
+            case TCPIP_IPPROTO_UDP:
+                res = TcpIp_UdpTransmit(status->socket_id
+                                       , pdu_info->SduDataPtr
+                                       , &status->remote.base
+                                       , pdu_info->SduLength);
+                break;
+            case TCPIP_IPPROTO_TCP:
+                res = TcpIp_TcpTransmit(status->socket_id
+                                      , pdu_info->SduDataPtr
+                                      , pdu_info->SduLength
+                                      , TRUE);
+                break;
+            default:
+                res = E_NOT_OK;
+                break;
+        }
     } else {
         res = E_NOT_OK;
-    }
-
-    switch(group->protocol) {
-        case TCPIP_IPPROTO_UDP:
-            res = TcpIp_UdpTransmit(status->socket_id
-                                   , pdu_info->SduDataPtr
-                                   , &status->remote.base
-                                   , pdu_info->SduLength);
-            break;
-        case TCPIP_IPPROTO_TCP:
-            res = TcpIp_TcpTransmit(status->socket_id
-                                  , pdu_info->SduDataPtr
-                                  , pdu_info->SduLength
-                                  , TRUE);
-            break;
-        default:
-            res = E_NOT_OK;
-            break;
     }
 
     return res;
