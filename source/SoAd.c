@@ -799,7 +799,6 @@ static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state
 
     /* update connection state */
     switch(state) {
-        case SOAD_SOCON_RECONNECT:
         case SOAD_SOCON_OFFLINE:
             con_status->socket_id = TCPIP_SOCKETID_INVALID;
 
@@ -811,6 +810,10 @@ static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state
             }
 
             break;
+
+        case SOAD_SOCON_RECONNECT:
+            break;
+
         case SOAD_SOCON_ONLINE: {
 
             if (SoAd_GetSocketRoute(id, SOAD_PDUHEADERID_INVALID, &route_id) == E_OK) {
