@@ -212,14 +212,17 @@ static void PduR_SoAdTpRxIndication_If(
 
 #define SOCKET_GRP1      0
 #define SOCKET_GRP2      1
+#define SOCKET_GRP3      2
 
 #define SOCKET_GRP1_CON1 0
 #define SOCKET_GRP1_CON2 1
 #define SOCKET_GRP2_CON1 2
 #define SOCKET_GRP2_CON2 3
+#define SOCKET_GRP3_CON1 4
 
 #define SOCKET_ROUTE1    0
 #define SOCKET_ROUTE2    1
+#define SOCKET_ROUTE3    2
 
 const SoAd_TpRxType suite_tp = {
         .rx_indication      = PduR_SoAdTpRxIndication,
@@ -239,6 +242,12 @@ const TcpIp_SockAddrInetType socket_remote_any_v4 = {
     .port    = TCPIP_PORT_ANY,
 };
 
+const TcpIp_SockAddrInetType socket_remote_loopback_v4 = {
+    .domain  = TCPIP_AF_INET,
+    .addr[0] = 0x74000001,
+    .port    = 8000,
+};
+
 const SoAd_SoGrpConfigType           socket_group_1 = {
     .localport = 8000,
     .protocol  = TCPIP_IPPROTO_TCP,
@@ -255,6 +264,14 @@ const SoAd_SoGrpConfigType           socket_group_2 = {
     .socket_route_id = SOAD_SOCKETROUTEID_INVALID
 };
 
+const SoAd_SoGrpConfigType           socket_group_3 = {
+    .localport = TCPIP_AF_INET,
+    .protocol  = TCPIP_IPPROTO_TCP,
+    .automatic = TRUE,
+    .initiate  = TRUE,
+    .socket_route_id = SOAD_SOCKETROUTEID_INVALID
+};
+
 const SoAd_SocketRouteType           socket_route_1 = {
         .header_id = SOAD_PDUHEADERID_INVALID,
         .destination = {
@@ -268,6 +285,14 @@ const SoAd_SocketRouteType           socket_route_2 = {
         .destination = {
                 .upper      = &suite_if,
                 .pdu        = 1u
+        }
+};
+
+const SoAd_SocketRouteType           socket_route_3 = {
+        .header_id = SOAD_PDUHEADERID_INVALID,
+        .destination = {
+                .upper      = &suite_if,
+                .pdu        = 2u
         }
 };
 
@@ -295,12 +320,19 @@ const SoAd_SoConConfigType           socket_group_2_conn_2 = {
     .socket_route_id  = SOCKET_ROUTE2,
 };
 
+const SoAd_SoConConfigType           socket_group_3_conn_1 = {
+    .group  = SOCKET_GRP3,
+    .remote = (const TcpIp_SockAddrType*)&socket_remote_loopback_v4,
+    .socket_route_id  = SOCKET_ROUTE2,
+};
+
 const SoAd_PduRouteType              pdu_route_1;
 
 const SoAd_ConfigType config = {
     .groups = {
         [SOCKET_GRP1] = &socket_group_1,
         [SOCKET_GRP2] = &socket_group_2,
+        [SOCKET_GRP3] = &socket_group_3,
     },
 
     .connections = {
@@ -308,11 +340,13 @@ const SoAd_ConfigType config = {
         [SOCKET_GRP1_CON2] = &socket_group_1_conn_2,
         [SOCKET_GRP2_CON1] = &socket_group_2_conn_1,
         [SOCKET_GRP2_CON2] = &socket_group_2_conn_2,
+        [SOCKET_GRP3_CON1] = &socket_group_3_conn_1,
     },
 
     .socket_routes     = {
         [SOCKET_ROUTE1] = &socket_route_1,
         [SOCKET_ROUTE2] = &socket_route_2,
+        [SOCKET_ROUTE3] = &socket_route_3,
     },
 
     .pdu_routes        = {
@@ -406,6 +440,7 @@ void main_test_mainfunction_open()
     CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON1].state, SOAD_SOCON_OFFLINE);
     CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP1_CON2].state, SOAD_SOCON_OFFLINE);
     CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].state, SOAD_SOCON_OFFLINE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP3_CON1].state, SOAD_SOCON_OFFLINE);
     SoAd_MainFunction();
 
     /* TCP listen socket should be bound and listening */
@@ -433,6 +468,12 @@ void main_test_mainfunction_open()
 
     CU_ASSERT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].socket_id, TCPIP_SOCKETID_INVALID);
     CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP2_CON1].state, SOAD_SOCON_RECONNECT);
+
+    /* TCP connect socket should be waiting for a connection */
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[SOCKET_GRP3_CON1].socket_id, TCPIP_SOCKETID_INVALID);
+    socket_state = &suite_state.sockets[SoAd_SoConStatus[SOCKET_GRP3_CON1].socket_id];
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[SOCKET_GRP3_CON1].state, SOAD_SOCON_RECONNECT);
+    CU_ASSERT_EQUAL(socket_state->connect     , TRUE);
 }
 
 void main_test_mainfunction_accept(SoAd_SoGrpIdType id_grp, SoAd_SoConIdType id_con)
@@ -467,6 +508,29 @@ void main_test_mainfunction_accept_1(void)
 void main_test_mainfunction_accept_2(void)
 {
     main_test_mainfunction_accept(SOCKET_GRP1, SOCKET_GRP1_CON2);
+}
+
+
+void main_test_mainfunction_connect(SoAd_SoGrpIdType id_grp, SoAd_SoConIdType id_con)
+{
+    TcpIp_SockAddrInetType inet;
+    inet.domain  = TCPIP_AF_INET;
+    inet.addr[0] = 1;
+    inet.port    = 1;
+
+    SoAd_TcpConnected(SoAd_SoConStatus[id_con].socket_id);
+
+    CU_ASSERT_NOT_EQUAL_FATAL(SoAd_SoConStatus[id_con].socket_id
+                           , TCPIP_SOCKETID_INVALID);
+
+    struct suite_socket_state* socket_state;
+    socket_state = &suite_state.sockets[SoAd_SoConStatus[id_con].socket_id];
+    CU_ASSERT_EQUAL(socket_state->retrieve    , FALSE);
+    CU_ASSERT_EQUAL(socket_state->bound       , FALSE);
+    CU_ASSERT_EQUAL(socket_state->listen      , FALSE);
+    CU_ASSERT_EQUAL(socket_state->connect     , FALSE);
+    CU_ASSERT_EQUAL(SoAd_SoConStatus[id_con].state
+                 , SOAD_SOCON_ONLINE);
 }
 
 void main_test_mainfunction_receive(SoAd_SoConIdType id_grp, SoAd_SoConIdType id_con)

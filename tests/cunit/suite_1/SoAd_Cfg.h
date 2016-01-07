@@ -20,9 +20,9 @@
 
 #include "Std_Types.h"
 
- #define SOAD_CFG_SOCKETROUTE_COUNT     2u
+ #define SOAD_CFG_SOCKETROUTE_COUNT     3u
  #define SOAD_CFG_PDUROUTE_COUNT        1u
- #define SOAD_CFG_CONNECTIONGROUP_COUNT 2u
- #define SOAD_CFG_CONNECTION_COUNT      4u
+ #define SOAD_CFG_CONNECTIONGROUP_COUNT 3u
+ #define SOAD_CFG_CONNECTION_COUNT      5u
 
 #endif /* SOAD_CFG_H_ */
