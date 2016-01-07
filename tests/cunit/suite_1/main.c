@@ -250,6 +250,7 @@ const TcpIp_SockAddrInetType socket_remote_loopback_v4 = {
 
 const SoAd_SoGrpConfigType           socket_group_1 = {
     .localport = 8000,
+    .domain    = TCPIP_AF_INET,
     .protocol  = TCPIP_IPPROTO_TCP,
     .automatic = TRUE,
     .initiate  = FALSE,
@@ -258,6 +259,7 @@ const SoAd_SoGrpConfigType           socket_group_1 = {
 
 const SoAd_SoGrpConfigType           socket_group_2 = {
     .localport = 8001,
+    .domain    = TCPIP_AF_INET,
     .protocol  = TCPIP_IPPROTO_UDP,
     .automatic = TRUE,
     .initiate  = FALSE,
@@ -265,7 +267,8 @@ const SoAd_SoGrpConfigType           socket_group_2 = {
 };
 
 const SoAd_SoGrpConfigType           socket_group_3 = {
-    .localport = TCPIP_AF_INET,
+    .localport = TCPIP_PORT_ANY,
+    .domain    = TCPIP_AF_INET,
     .protocol  = TCPIP_IPPROTO_TCP,
     .automatic = TRUE,
     .initiate  = TRUE,
