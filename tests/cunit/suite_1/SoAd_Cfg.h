@@ -20,6 +20,8 @@
 
 #include "Std_Types.h"
 
+#define SOAD_CFG_ENABLE_DEVELOPMENT_ERROR STD_ON
+
  #define SOAD_CFG_SOCKETROUTE_COUNT     3u
  #define SOAD_CFG_PDUROUTE_COUNT        1u
  #define SOAD_CFG_CONNECTIONGROUP_COUNT 3u
