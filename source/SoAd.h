@@ -89,6 +89,8 @@
  */
 #define SOAD_API_INIT                         0x01u
 #define SOAD_API_IFTRANSMIT                   0x03u
+#define SOAD_API_RXINDICATION                 0x12u
+#define SOAD_API_TCPIPEVENT                   0x16u
 
 /**
  * @}

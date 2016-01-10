@@ -46,9 +46,21 @@
         }                                            \
     } while(0)
 
+#define SOAD_DET_CHECK_RET_0(check, api, error)      \
+    do {                                             \
+        if (!(check)) {                              \
+            (void)Det_ReportError(SOAD_MODULEID      \
+                                , SOAD_INSTANCEID    \
+                                , api                \
+                                , error);            \
+            return;                                  \
+        }                                            \
+    } while(0)
+
 #else
 #define SOAD_DET_ERROR(api, error)
 #define SOAD_DET_CHECK_RET(check, api, error)
+#define SOAD_DET_CHECK_RET_0(check, api)
 #endif
 
 const SoAd_ConfigType * SoAd_Config = NULL_PTR;
@@ -396,17 +408,16 @@ void SoAd_RxIndication(
     /**
      * @req SWS_SoAd_00264
      */
-    SOAD_DET_CHECK_RET(SoAd_Config != NULL_PTR
-                     , SOAD_API_RXINDICATION
-                     , SOAD_E_NOTINIT);
-
+    SOAD_DET_CHECK_RET_0(SoAd_Config != NULL_PTR
+                       , SOAD_API_RXINDICATION
+                       , SOAD_E_NOTINIT);
 
     /**
      * @req SWS_SoAd_00264
      */
-    SOAD_DET_CHECK_RET(remote != NULL_PTR
-                     , SOAD_API_RXINDICATION
-                     , SOAD_E_INV_ARG.);
+    SOAD_DET_CHECK_RET_0(remote != NULL_PTR
+                       , SOAD_API_RXINDICATION
+                       , SOAD_E_INV_ARG);
 
 
     res = SoAd_SoCon_Lookup(&id_con, socket_id);
@@ -478,9 +489,9 @@ void SoAd_TcpIpEvent(
     /**
      * @req SWS_SoAd_00276
      */
-    SOAD_DET_CHECK_RET(SoAd_Config != NULL_PTR
-                     , SOAD_API_TCPIPEVENT
-                     , SOAD_E_NOTINIT);
+    SOAD_DET_CHECK_RET_0(SoAd_Config != NULL_PTR
+                       , SOAD_API_TCPIPEVENT
+                       , SOAD_E_NOTINIT);
 
 
     switch (event) {
