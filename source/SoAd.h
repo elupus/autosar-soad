@@ -148,6 +148,7 @@ typedef struct {
 
 typedef struct {
     uint16                            localport;          /**< SoAdSocketLocalPort */
+    TcpIp_LocalAddrIdType             localaddr;          /**< SoAdSocketLocalAddressRef */
     TcpIp_DomainType                  domain;             /**< domain of local interface */
     TcpIp_ProtocolType                protocol;
     boolean                           automatic;          /**< SoAdSocketAutomaticSoConSetup */

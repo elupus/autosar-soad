@@ -754,7 +754,7 @@ static Std_ReturnType SoAd_SoCon_PerformOpen(SoAd_SoConIdType id)
         if (res == E_OK) {
             uint16 localport = config_group->localport;
             res = TcpIp_Bind(*socket_id
-                           , TCPIP_LOCALADDRID_ANY
+                           , config_group->localaddr
                            , &localport);
 
             if (res == E_OK) {
