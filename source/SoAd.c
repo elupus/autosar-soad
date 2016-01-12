@@ -768,6 +768,12 @@ static Std_ReturnType SoAd_SoCon_PerformOpen(SoAd_SoConIdType id)
                     }
                 }
             }
+
+            /* on failure, we must clean up the socket so will try again */
+            if (res != E_OK) {
+                TcpIp_Close(*socket_id, TRUE);
+                *socket_id = TCPIP_SOCKETID_INVALID;
+            }
         }
     } else {
         res = E_OK;
