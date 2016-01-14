@@ -309,6 +309,18 @@ static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header
     return res;
 }
 
+static Std_ReturnType SoAd_GetPduRoute(PduIdType id, const SoAd_PduRouteType** route)
+{
+    Std_ReturnType res;
+    if (id < SOAD_CFG_PDUROUTE_COUNT) {
+        *route = SoAd_Config->pdu_routes[id];
+        res = E_OK;
+    } else {
+        res = E_NOT_OK;
+    }
+    return res;
+}
+
 /**
  * @brief Performs check to see if socket should go online
  * @req   SWS_SoAd_00592
@@ -630,7 +642,10 @@ Std_ReturnType SoAd_IfTransmit(
      * @req SWS_SoAd_00653-TODO
      */
 
-    route  = SoAd_Config->pdu_routes[pdu_id];
+    if (SoAd_GetPduRoute(pdu_id, &route) != E_OK) {
+        return E_NOT_OK;
+    }
+
     status = &SoAd_SoConStatus[route->destination.connection];
     config = SoAd_Config->connections[route->destination.connection];
     group  = SoAd_Config->groups[config->group];
