@@ -312,8 +312,20 @@ static Std_ReturnType SoAd_GetSocketRoute(SoAd_SoConIdType con_id, uint32 header
 static Std_ReturnType SoAd_GetPduRoute(PduIdType id, const SoAd_PduRouteType** route)
 {
     Std_ReturnType res;
-    if (id < SOAD_CFG_PDUROUTE_COUNT) {
-        *route = SoAd_Config->pdu_routes[id];
+    PduIdType      high = SOAD_CFG_PDUROUTE_COUNT - 1u;
+    PduIdType      low  = 0u;
+
+    while (low < high) {
+        PduIdType mid = low + (PduIdType)((high - low) >> 1u);
+        if (SoAd_Config->pdu_routes[mid]->pdu_id < id) {
+            low = mid + 1u;
+        } else {
+            low = mid;
+        }
+    }
+
+    if (SoAd_Config->pdu_routes[low]->pdu_id == id) {
+        *route = SoAd_Config->pdu_routes[low];
         res = E_OK;
     } else {
         res = E_NOT_OK;

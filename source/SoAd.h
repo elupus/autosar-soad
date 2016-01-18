@@ -170,6 +170,7 @@ typedef struct {
 } SoAd_PduRouteDestType;
 
 typedef struct {
+    PduIdType                               pdu_id;
     SoAd_PduRouteDestType                   destination;
 } SoAd_PduRouteType;
 
