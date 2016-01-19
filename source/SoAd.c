@@ -74,6 +74,8 @@ typedef struct {
     boolean                   request_abort;
 
     const SoAd_SocketRouteType* socket_route;
+    const SoAd_PduRouteType*    pdu_route;
+
 } SoAd_SoConStatusType;
 
 typedef struct {
@@ -621,7 +623,28 @@ BufReq_ReturnType SoAd_CopyTxData(
         uint16                      len
     )
 {
-    return BUFREQ_E_NOT_OK;
+    Std_ReturnType       res;
+    BufReq_ReturnType    res_buf;
+    SoAd_SoConIdType     id_con;
+    res = SoAd_SoCon_Lookup(&id_con, socket_id);
+    if (res == E_OK) {
+        const SoAd_SoConConfigType* config = SoAd_Config->connections[id_con];
+        SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id_con];
+        PduInfoType                 info;
+        PduLengthType               available;
+
+        info.SduLength  = len;
+        info.SduDataPtr = buf;
+
+        res_buf = status->pdu_route->upper->copy_tx_data(status->pdu_route->pdu_id
+                                                       , &info
+                                                       , NULL_PTR
+                                                       , &available);
+    } else {
+        res_buf = BUFREQ_E_NOT_OK;
+    }
+
+    return res_buf;
 }
 
 Std_ReturnType SoAd_IfTransmit(
@@ -629,12 +652,8 @@ Std_ReturnType SoAd_IfTransmit(
         const PduInfoType*          pdu_info
     )
 {
-    const SoAd_PduRouteType*    route;
-    const SoAd_SoConStatusType* status;
-    const SoAd_SoConConfigType* config;
-    const SoAd_SoGrpConfigType* group;
     Std_ReturnType              res;
-
+    const SoAd_PduRouteType*    route;
 
     /**
      * @req SWS_SoAd_00213
@@ -654,70 +673,168 @@ Std_ReturnType SoAd_IfTransmit(
      * @req SWS_SoAd_00653-TODO
      */
 
-    if (SoAd_GetPduRoute(pdu_id, &route) != E_OK) {
-        return E_NOT_OK;
-    }
+    res = SoAd_GetPduRoute(pdu_id, &route);
 
-    status = &SoAd_SoConStatus[route->destination.connection];
-    config = SoAd_Config->connections[route->destination.connection];
-    group  = SoAd_Config->groups[config->group];
+    if (res == E_OK) {
+        SoAd_SoConStatusType*       status;
+        const SoAd_SoConConfigType* config;
+        const SoAd_SoGrpConfigType* group;
+        Std_ReturnType              res;
 
-    if (status->state == SOAD_SOCON_ONLINE) {
-        switch(group->protocol) {
-            case TCPIP_IPPROTO_UDP:
-                res = TcpIp_UdpTransmit(status->socket_id
-                                       , pdu_info->SduDataPtr
-                                       , &status->remote.base
-                                       , pdu_info->SduLength);
-                break;
-            case TCPIP_IPPROTO_TCP:
-                res = TcpIp_TcpTransmit(status->socket_id
-                                      , pdu_info->SduDataPtr
-                                      , pdu_info->SduLength
-                                      , TRUE);
-                break;
-            default:
-                res = E_NOT_OK;
-                break;
+        status = &SoAd_SoConStatus[route->destination.connection];
+        config = SoAd_Config->connections[route->destination.connection];
+        group  = SoAd_Config->groups[config->group];
+
+        if (status->state == SOAD_SOCON_ONLINE) {
+            switch(group->protocol) {
+                case TCPIP_IPPROTO_UDP:
+                    res = TcpIp_UdpTransmit(status->socket_id
+                                          , pdu_info->SduDataPtr
+                                          , &status->remote.base
+                                          , pdu_info->SduLength);
+                    break;
+                case TCPIP_IPPROTO_TCP:
+                    res = TcpIp_TcpTransmit(status->socket_id
+                                          , pdu_info->SduDataPtr
+                                          , pdu_info->SduLength
+                                          , TRUE);
+                    break;
+                default:
+                    res = E_NOT_OK;
+                    break;
+            }
+        } else {
+            res = E_NOT_OK;
         }
-    } else {
-        res = E_NOT_OK;
     }
+    return res;
+}
 
+
+Std_ReturnType SoAd_TpTransmit(
+        PduIdType                   pdu_id,
+        const PduInfoType*          pdu_info
+    )
+{
+    Std_ReturnType              res;
+    const SoAd_PduRouteType*    route;
+
+    /**
+     * @req SWS_SoAd_00224
+     */
+    SOAD_DET_CHECK_RET(SoAd_Config != NULL_PTR
+                     , SOAD_API_TPTRANSMIT
+                     , SOAD_E_NOTINIT);
+
+    /**
+     * @req SWS_SoAd_00237
+     */
+    SOAD_DET_CHECK_RET(pdu_id < SOAD_CFG_PDUROUTE_COUNT
+                     , SOAD_API_TPTRANSMIT
+                     , SOAD_E_INV_PDUID);
+
+    /**
+     * @req SWS_SoAd_00650-TODO
+     */
+
+    res = SoAd_GetPduRoute(pdu_id, &route);
+
+    if (res == E_OK) {
+        SoAd_SoConStatusType* status;
+        status = &SoAd_SoConStatus[route->destination.connection];
+        status->pdu_route = route;
+    }
     return res;
 }
 
 /**
  * @brief SWS_SoAd_00642-TODO
  */
-void SoAd_SoCon_PerformClose(SoAd_SoConIdType id)
+void SoAd_SoCon_ProcessClose(SoAd_SoConIdType id)
 {
     const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
     SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
 
-    if (status->socket_id != TCPIP_SOCKETID_INVALID) {
-        TcpIp_Close(status->socket_id, status->request_abort);
+    if (status->request_close) {
+        if (status->socket_id != TCPIP_SOCKETID_INVALID) {
+            TcpIp_Close(status->socket_id, status->request_abort);
+        }
+        status->request_close = FALSE;
+    }
+}
+
+void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
+{
+    SoAd_SoConStatusType*       status;
+    const SoAd_SoConConfigType* config;
+    const SoAd_SoGrpConfigType* group;
+    const SoAd_PduRouteType*    route;
+    Std_ReturnType              res;
+    BufReq_ReturnType           res_buf;
+    PduInfoType                 pdu_info;
+    PduLengthType               available;
+
+    status = &SoAd_SoConStatus[id];
+    config = SoAd_Config->connections[id];
+    group  = SoAd_Config->groups[config->group];
+    route  = status->pdu_route;
+
+    if (route) {
+        pdu_info.SduDataPtr = NULL_PTR;
+        pdu_info.SduLength  = 0u;
+
+        res_buf = route->upper->copy_tx_data(route->pdu_id, &pdu_info, NULL_PTR, &available);
+        if (res_buf == BUFREQ_OK) {
+            pdu_info.SduLength = available;
+            switch(group->protocol) {
+                case TCPIP_IPPROTO_UDP:
+                    res = TcpIp_UdpTransmit(status->socket_id
+                                          , NULL_PTR
+                                          , &status->remote.base
+                                          , available);
+                    break;
+                case TCPIP_IPPROTO_TCP:
+                    res = TcpIp_TcpTransmit(status->socket_id
+                                          , NULL_PTR
+                                          , available
+                                          , FALSE);
+                    break;
+                default:
+                    res = E_NOT_OK;
+                    break;
+            }
+        } else if (res_buf == BUFREQ_E_BUSY) {
+            res = E_OK;
+        } else {
+            res = E_NOT_OK;
+        }
+
+        if (res == E_OK) {
+            if (available == 0u) {
+                /** TODO - SoAdSocketTcpImmediateTpTxConfirmation==FALSE */
+                route->upper->tx_confirmation(route->pdu_id, E_OK);
+                status->pdu_route = NULL_PTR;
+            }
+        } else {
+            route->upper->tx_confirmation(route->pdu_id, E_NOT_OK);
+            status->pdu_route = NULL_PTR;
+        }
+
+
+    } else {
+        res = E_NOT_OK;
     }
 }
 
 void SoAd_SoCon_State_Online(SoAd_SoConIdType id)
 {
-    const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
-    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
-    if (status->request_close) {
-        SoAd_SoCon_PerformClose(id);
-        status->request_close = FALSE;
-    }
+    SoAd_SoCon_ProcessClose(id);
+    SoAd_SoCon_ProcessTransmit(id);
 }
 
 void SoAd_SoCon_State_Reconnect(SoAd_SoConIdType id)
 {
-    const SoAd_SoConConfigType* config = SoAd_Config->connections[id];
-    SoAd_SoConStatusType*       status       = &SoAd_SoConStatus[id];
-    if (status->request_close) {
-        SoAd_SoCon_PerformClose(id);
-        status->request_close = FALSE;
-    }
+    SoAd_SoCon_ProcessClose(id);
 }
 
 /**

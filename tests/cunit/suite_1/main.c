@@ -210,6 +210,23 @@ static void PduR_SoAdTpRxIndication_If(
 {
 }
 
+BufReq_ReturnType PduR_SoAdTpCopyTxData(
+        PduIdType               id,
+        const PduInfoType*      info,
+        RetryInfoType*          retry,
+        PduLengthType*          available
+    )
+{
+    return BUFREQ_OK;
+}
+
+void PduR_SoAdTpTxConfirmation(
+        PduIdType               id,
+        Std_ReturnType          result
+    )
+{
+}
+
 #define SOCKET_GRP1      0
 #define SOCKET_GRP2      1
 #define SOCKET_GRP3      2
@@ -234,6 +251,11 @@ const SoAd_TpRxType suite_if = {
         .rx_indication      = PduR_SoAdTpRxIndication_If,
         .copy_rx_data       = PduR_SoAdIfCopyRxData,
         .start_of_reception = PduR_SoAdIfStartOfReception,
+};
+
+const SoAd_TpTxType suite_tptx = {
+        .copy_tx_data       = PduR_SoAdTpCopyTxData,
+        .tx_confirmation    = PduR_SoAdTpTxConfirmation,
 };
 
 const TcpIp_SockAddrInetType socket_remote_any_v4 = {
@@ -332,7 +354,14 @@ const SoAd_SoConConfigType           socket_group_3_conn_1 = {
     .socket_route_id  = SOCKET_ROUTE2,
 };
 
-const SoAd_PduRouteType              pdu_route_1;
+const SoAd_PduRouteType              pdu_route_1 = {
+        .pdu_id = 0u,
+        .upper  = &suite_tptx,
+        .destination = {
+                .header_id  = SOAD_PDUHEADERID_INVALID,
+                .connection = SOCKET_GRP1_CON1,
+        },
+};
 
 const SoAd_ConfigType config = {
     .groups = {

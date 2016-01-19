@@ -89,6 +89,7 @@
  */
 #define SOAD_API_INIT                         0x01u
 #define SOAD_API_IFTRANSMIT                   0x03u
+#define SOAD_API_TPTRANSMIT                   0x04u
 #define SOAD_API_RXINDICATION                 0x12u
 #define SOAD_API_TCPIPEVENT                   0x16u
 
@@ -137,6 +138,20 @@ typedef struct {
 } SoAd_TpRxType;
 
 typedef struct {
+    BufReq_ReturnType (*copy_tx_data)(
+            PduIdType               id,
+            const PduInfoType*      info,
+            RetryInfoType*          retry,
+            PduLengthType*          available
+        );
+
+    void (*tx_confirmation)(
+            PduIdType               id,
+            Std_ReturnType          result
+        );
+} SoAd_TpTxType;
+
+typedef struct {
     const SoAd_TpRxType*              upper;
     PduIdType                         pdu;                /**< SoAdRxPduRef */
 } SoAd_SocketRouteDestType;
@@ -171,6 +186,7 @@ typedef struct {
 
 typedef struct {
     PduIdType                               pdu_id;
+    const SoAd_TpTxType*                    upper;
     SoAd_PduRouteDestType                   destination;
 } SoAd_PduRouteType;
 
