@@ -205,5 +205,9 @@ Std_ReturnType SoAd_IfTransmit(
         const PduInfoType*  pdu_info
     );
 
+Std_ReturnType SoAd_TpTransmit(
+        PduIdType                   pdu_id,
+        const PduInfoType*          pdu_info
+    );
 
 #endif
