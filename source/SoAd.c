@@ -73,8 +73,8 @@ typedef struct {
     boolean                   request_close;
     boolean                   request_abort;
 
-    const SoAd_SocketRouteType* socket_route;
-    const SoAd_PduRouteType*    pdu_route;
+    const SoAd_SocketRouteType* rx_route;
+    const SoAd_PduRouteType*    tx_route;
 
 } SoAd_SoConStatusType;
 
@@ -387,14 +387,14 @@ Std_ReturnType SoAd_RxIndication_SoCon(
     /* TODO - header id handling */
 
 
-    if (con_sts->socket_route) {
+    if (con_sts->rx_route) {
         PduLengthType     buf_len;
 
         info.SduDataPtr = NULL_PTR;
         info.SduLength  = 0u;
 
-        if (con_sts->socket_route->destination.upper->copy_rx_data(
-                con_sts->socket_route->destination.pdu
+        if (con_sts->rx_route->destination.upper->copy_rx_data(
+                con_sts->rx_route->destination.pdu
               , &info
               , &buf_len) != BUFREQ_OK) {
             return E_NOT_OK;
@@ -409,8 +409,8 @@ Std_ReturnType SoAd_RxIndication_SoCon(
         info.SduLength = len;
         info.SduDataPtr = buf;
 
-        if (con_sts->socket_route->destination.upper->copy_rx_data(
-                con_sts->socket_route->destination.pdu
+        if (con_sts->rx_route->destination.upper->copy_rx_data(
+                con_sts->rx_route->destination.pdu
               , &info
               , &buf_len) != BUFREQ_OK) {
             return E_NOT_OK;
@@ -636,7 +636,7 @@ BufReq_ReturnType SoAd_CopyTxData(
         info.SduLength  = len;
         info.SduDataPtr = buf;
 
-        res_buf = status->pdu_route->upper->copy_tx_data(status->pdu_route->pdu_id
+        res_buf = status->tx_route->upper->copy_tx_data(status->tx_route->pdu_id
                                                        , &info
                                                        , NULL_PTR
                                                        , &available);
@@ -742,7 +742,7 @@ Std_ReturnType SoAd_TpTransmit(
     if (res == E_OK) {
         SoAd_SoConStatusType* status;
         status = &SoAd_SoConStatus[route->destination.connection];
-        status->pdu_route = route;
+        status->tx_route = route;
     }
     return res;
 }
@@ -777,7 +777,7 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
     status = &SoAd_SoConStatus[id];
     config = SoAd_Config->connections[id];
     group  = SoAd_Config->groups[config->group];
-    route  = status->pdu_route;
+    route  = status->tx_route;
 
     if (route) {
         pdu_info.SduDataPtr = NULL_PTR;
@@ -813,11 +813,11 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
             if (available == 0u) {
                 /** TODO - SoAdSocketTcpImmediateTpTxConfirmation==FALSE */
                 route->upper->tx_confirmation(route->pdu_id, E_OK);
-                status->pdu_route = NULL_PTR;
+                status->tx_route = NULL_PTR;
             }
         } else {
             route->upper->tx_confirmation(route->pdu_id, E_NOT_OK);
-            status->pdu_route = NULL_PTR;
+            status->tx_route = NULL_PTR;
         }
 
 
@@ -971,11 +971,11 @@ static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state
         case SOAD_SOCON_OFFLINE:
             con_status->socket_id = TCPIP_SOCKETID_INVALID;
 
-            if (con_status->socket_route) {
-                con_status->socket_route->destination.upper->rx_indication(
-                        con_status->socket_route->destination.pdu
+            if (con_status->rx_route) {
+                con_status->rx_route->destination.upper->rx_indication(
+                        con_status->rx_route->destination.pdu
                         , E_OK);
-                con_status->socket_route = NULL;
+                con_status->rx_route = NULL;
             }
 
             break;
@@ -995,7 +995,7 @@ static void SoAd_SoCon_EnterState(SoAd_SoConIdType id, SoAd_SoConStateType state
                                          , &info
                                          , len
                                          , &len) == BUFREQ_OK) {
-                    con_status->socket_route = route_config;
+                    con_status->rx_route = route_config;
                 }
             }
             break;
