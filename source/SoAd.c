@@ -75,6 +75,8 @@ typedef struct {
 
     const SoAd_SocketRouteType* rx_route;
     const SoAd_PduRouteType*    tx_route;
+    PduLengthType               tx_remain;
+    PduLengthType               tx_available;
 
 } SoAd_SoConStatusType;
 
@@ -631,7 +633,6 @@ BufReq_ReturnType SoAd_CopyTxData(
         const SoAd_SoConConfigType* config = SoAd_Config->connections[id_con];
         SoAd_SoConStatusType*       status = &SoAd_SoConStatus[id_con];
         PduInfoType                 info;
-        PduLengthType               available;
 
         info.SduLength  = len;
         info.SduDataPtr = buf;
@@ -639,7 +640,10 @@ BufReq_ReturnType SoAd_CopyTxData(
         res_buf = status->tx_route->upper->copy_tx_data(status->tx_route->pdu_id
                                                        , &info
                                                        , NULL_PTR
-                                                       , &available);
+                                                       , &status->tx_available);
+        if (res_buf == BUFREQ_OK) {
+            status->tx_remain -= len;
+        }
     } else {
         res_buf = BUFREQ_E_NOT_OK;
     }
@@ -772,7 +776,6 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
     Std_ReturnType              res;
     BufReq_ReturnType           res_buf;
     PduInfoType                 pdu_info;
-    PduLengthType               available;
 
     status = &SoAd_SoConStatus[id];
     config = SoAd_Config->connections[id];
@@ -783,19 +786,24 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
         pdu_info.SduDataPtr = NULL_PTR;
         pdu_info.SduLength  = 0u;
 
-        res_buf = route->upper->copy_tx_data(route->pdu_id, &pdu_info, NULL_PTR, &available);
+        if (status->tx_available == 0u) {
+            res_buf = route->upper->copy_tx_data(route->pdu_id, &pdu_info, NULL_PTR, &status->tx_available);
+        } else {
+            res_buf = BUFREQ_OK;
+        }
+
         if (res_buf == BUFREQ_OK) {
             switch(group->protocol) {
                 case TCPIP_IPPROTO_UDP:
                     res = TcpIp_UdpTransmit(status->socket_id
                                           , NULL_PTR
                                           , &status->remote.base
-                                          , available);
+                                          , status->tx_available);
                     break;
                 case TCPIP_IPPROTO_TCP:
                     res = TcpIp_TcpTransmit(status->socket_id
                                           , NULL_PTR
-                                          , available
+                                          , status->tx_available
                                           , FALSE);
                     break;
                 default:
@@ -808,15 +816,12 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
             res = E_NOT_OK;
         }
 
-        if (res == E_OK) {
-            if (available == 0u) {
-                /** TODO - SoAdSocketTcpImmediateTpTxConfirmation==FALSE */
-                status->tx_route = NULL_PTR;
-                route->upper->tx_confirmation(route->pdu_id, E_OK);
-            }
-        } else {
-            status->tx_route = NULL_PTR;
-            route->upper->tx_confirmation(route->pdu_id, E_NOT_OK);
+        if (status->tx_remain == 0u || (res != E_OK)) {
+            /** TODO - SoAdSocketTcpImmediateTpTxConfirmation==FALSE */
+            status->tx_route     = NULL_PTR;
+            status->tx_remain    = 0u;
+            status->tx_available = 0u;
+            route->upper->tx_confirmation(route->pdu_id, res);
         }
     }
 }
