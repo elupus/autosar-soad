@@ -819,10 +819,6 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
             route->upper->tx_confirmation(route->pdu_id, E_NOT_OK);
             status->tx_route = NULL_PTR;
         }
-
-
-    } else {
-        res = E_NOT_OK;
     }
 }
 
