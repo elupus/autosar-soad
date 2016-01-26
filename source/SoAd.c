@@ -785,7 +785,6 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
 
         res_buf = route->upper->copy_tx_data(route->pdu_id, &pdu_info, NULL_PTR, &available);
         if (res_buf == BUFREQ_OK) {
-            pdu_info.SduLength = available;
             switch(group->protocol) {
                 case TCPIP_IPPROTO_UDP:
                     res = TcpIp_UdpTransmit(status->socket_id
