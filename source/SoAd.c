@@ -811,12 +811,12 @@ void SoAd_SoCon_ProcessTransmit(SoAd_SoConIdType id)
         if (res == E_OK) {
             if (available == 0u) {
                 /** TODO - SoAdSocketTcpImmediateTpTxConfirmation==FALSE */
-                route->upper->tx_confirmation(route->pdu_id, E_OK);
                 status->tx_route = NULL_PTR;
+                route->upper->tx_confirmation(route->pdu_id, E_OK);
             }
         } else {
-            route->upper->tx_confirmation(route->pdu_id, E_NOT_OK);
             status->tx_route = NULL_PTR;
+            route->upper->tx_confirmation(route->pdu_id, E_NOT_OK);
         }
     }
 }
